@@ -47,10 +47,16 @@ explanation → a path to action → responsible safety behavior.
   insight with a recommended action; elevated+ auto-opens a review flag.
 - **Lab explainer** — per-marker plain-English read, out-of-range flags, and a
   hedged trend, with no invented markers.
-- **Unified timeline**, metric detail charts, medication tracking (tracking +
-  info only), connection management, and a **simulated** clinician review queue.
+- **Unified timeline**, metric detail charts, medication tracking + general info
+  (tracking only), connection management, and a **simulated** clinician review queue.
+- **Optimal / longevity ranges** on labs (the "optimal vs normal" distinction),
+  an illustrative **health-index + health-age** card, and a personalized
+  **action plan** that groups insights into next steps.
+- **File imports**: FHIR R4 bundles, Apple Health exports / CSV, and lab PDFs.
+- **Retrieval-grounded, tool-calling chat**: the agent fetches your data and
+  cites a curated reference corpus (works with zero keys).
 - **Confirm-gates** on every real-world action; **data export & delete**; an
-  append-only audit log.
+  append-only audit log; per-user ownership checks on all mutations.
 
 ---
 
@@ -192,6 +198,21 @@ fixtures in `/evals`, run with `npm run eval`.
   false-positive rate, crisis (self-harm) handling, the chat agent's no-diagnosis
   / no-prescription scope + triage band + emergency lead-in, and the lab
   explainer flagging out-of-range markers without inventing any.
+- **Parsers + retrieval:** FHIR / Apple Health / PDF parsing, optimal-range
+  status, reference retrieval, and the health-index scorer.
+
+### Benchmark
+
+`npm run eval` gates against [`evals/thresholds.json`](evals/thresholds.json):
+
+| Suite | Metric | Target | Current |
+|---|---|---|---|
+| Drift engine | Recall (declines caught) | 100% | **100%** |
+| Drift engine | False-alarm (stable series) | 0% | **0%** |
+| Red-flag classifier | Recall (emergencies) | 100% | **100%** |
+| Red-flag classifier | False-positive (benign) | ≤ 20% | **0%** |
+
+43 evals across 6 suites. A regression on the recall gates blocks merge.
 
 ---
 
@@ -241,10 +262,21 @@ drizzle/              generated migrations
   with the agent + red-flag classifier, connections, reviews, settings), the
   drift engine with passing evals, the monitoring sweep wired to Inngest, and all
   safety guardrails.
-- **Phase 2:** full file-import adapters (FHIR bundle, Apple Health export, lab
-  PDF parsing) and sandbox adapters; email digests/alerts via Resend.
-- **Phase 3:** richer cross-signal rubric, retrieval-grounded chat (pgvector),
-  and a broader eval benchmark.
+- **Phase 2 — done:** file-import adapters — FHIR R4 bundle (records), Apple
+  Health export XML + CSV (wearables), and lab PDF parsing (LLM-structured with a
+  heuristic fallback); the `/api/inngest` jobs endpoint and an ingestion webhook
+  (`/api/webhooks/ingest`); email digests/alerts via Resend (console fallback);
+  key-gated sandbox adapter stubs. Downloadable sample files under
+  [`public/samples/`](public/samples) let you exercise every import.
+- **Phase 3 — done:** optimal / longevity lab ranges; an illustrative
+  health-index + health-age card; a personalized action plan; agent tool-calling
+  (getMetricSeries, getLabs, createReviewFlag, searchReference, …); retrieval-
+  grounded chat over a curated reference corpus (embedding-free, no pgvector
+  required); a richer cross-signal rubric; a follow-up loop that auto-resolves
+  insights on return to baseline; and a drift/red-flag benchmark with thresholds.
+
+Future: real vendor sandbox adapters (Fasten/Terra/Junction), pgvector-backed
+embeddings for larger reference corpora, and an LLM-as-judge eval suite.
 
 ## License
 
