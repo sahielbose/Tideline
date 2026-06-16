@@ -3,12 +3,7 @@ import { listSessions, startChat, getSessionMessages } from "@/lib/services";
 import { ChatClient } from "@/components/chat/chat-client";
 import type { TriageBand } from "@/lib/types";
 
-export default async function ChatPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ask?: string }>;
-}) {
-  const { ask } = await searchParams;
+export default async function ChatPage() {
   const user = await getSessionUser();
   const userId = user?.id ?? null;
 
@@ -24,5 +19,5 @@ export default async function ChatPage({
       triage: (m.triageBand ?? undefined) as TriageBand | undefined,
     }));
 
-  return <ChatClient sessionId={session.id} initialMessages={initial} autoAsk={ask} />;
+  return <ChatClient sessionId={session.id} initialMessages={initial} />;
 }

@@ -171,7 +171,6 @@ export async function importFile(
   kind: "records" | "wearable",
   file: { filename: string; content: string },
 ): Promise<Connection> {
-  // Validate the file parses before persisting a connection.
   const parsed =
     kind === "records"
       ? parseFhirBundle(file.content)
@@ -179,10 +178,23 @@ export async function importFile(
   if (parsed.length === 0) {
     throw new Error(`No ${kind} data found in ${file.filename}. Check the file format.`);
   }
-  const conn = await connectSource(userId, kind, "file", {
-    filename: file.filename,
-    content: file.content,
-  });
-  await logAction(userId, "ingestion.import_file", { kind, filename: file.filename });
+  // One-shot: store the parsed observations now; the connection keeps only the
+  // filename (never the raw content) so nothing large is persisted or sent to
+  // the client.
+  const [conn] = await db
+    .insert(connections)
+    .values({
+      userId,
+      kind,
+      adapter: "file",
+      status: "connected",
+      label: `${kind === "records" ? "Records" : "Wearable"} — ${file.filename}`,
+      config: { filename: file.filename },
+      lastSyncedAt: new Date(),
+    })
+    .returning();
+  await normalizeAndStore(userId, kind, parsed, conn.id);
+  await recomputeBaselines(userId);
+  await logAction(userId, "ingestion.import_file", { kind, filename: file.filename, count: parsed.length });
   return conn;
 }

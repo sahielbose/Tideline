@@ -16,10 +16,15 @@ export { hashPassword, verifyPassword } from "./password";
 
 const COOKIE = "tideline_session";
 const DEMO_EMAIL = "demo@tideline.app";
-const autologin = process.env.DEMO_AUTOLOGIN !== "false";
+// Demo auto-login is a dev convenience only — never on in production.
+const autologin =
+  process.env.NODE_ENV !== "production" && process.env.DEMO_AUTOLOGIN !== "false";
 
 // ---- signed session token -------------------------------------------------
 function sign(payload: string): string {
+  if (!config.authSecret) {
+    throw new Error("AUTH_SECRET is required (no production fallback). Set it in the environment.");
+  }
   return createHmac("sha256", config.authSecret).update(payload).digest("base64url");
 }
 

@@ -22,7 +22,10 @@ const resendApiKey = env("RESEND_API_KEY");
 
 export const config = {
   databaseUrl,
-  authSecret: env("AUTH_SECRET", "tideline-dev-secret-change-me"),
+  // No hardcoded secret in production — auth fails closed if AUTH_SECRET is unset.
+  authSecret:
+    env("AUTH_SECRET") ||
+    (process.env.NODE_ENV === "production" ? "" : "tideline-dev-secret-change-me"),
   appUrl: env("APP_URL", "http://localhost:3000"),
 
   dataAdapterDefault: (env("DATA_ADAPTER_DEFAULT", "mock") as AdapterKind),

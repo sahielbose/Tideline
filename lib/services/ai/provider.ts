@@ -90,7 +90,6 @@ class AnthropicProvider implements LLMProvider {
   async completeWithTools(opts: ToolCompleteOptions): Promise<string> {
     const client = await this.client();
     const maxIters = opts.maxIters ?? 4;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = opts.messages.map((m) => ({ role: m.role, content: m.content }));
     let lastText = "";
     for (let i = 0; i < maxIters; i++) {
@@ -99,7 +98,6 @@ class AnthropicProvider implements LLMProvider {
         max_tokens: opts.maxTokens ?? 1024,
         temperature: opts.temperature ?? 0.4,
         system: opts.system,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tools: opts.tools as any,
         messages,
       });
@@ -107,12 +105,10 @@ class AnthropicProvider implements LLMProvider {
         .filter((b): b is { type: "text"; text: string } & typeof b => b.type === "text")
         .map((b) => b.text)
         .join("");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const toolUses = resp.content.filter((b: any) => b.type === "tool_use");
       if (resp.stop_reason !== "tool_use" || toolUses.length === 0) return lastText;
 
       messages.push({ role: "assistant", content: resp.content });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const results: any[] = [];
       for (const tu of toolUses as { id: string; name: string; input: Record<string, unknown> }[]) {
         let out: unknown;

@@ -30,6 +30,17 @@ describe("wearable CSV parser", () => {
     expect(pts.length).toBe(2);
     expect(pts.every((p) => p.code === "rhr")).toBe(true);
   });
+
+  it("parses Apple Health export XML records into mapped metric points", () => {
+    const xml =
+      '<HealthData><Record type="HKQuantityTypeIdentifierRestingHeartRate" unit="count/min" value="61" startDate="2026-06-01 08:00:00 -0700"/>' +
+      '<Record type="HKQuantityTypeIdentifierStepCount" unit="count" value="8000" startDate="2026-06-01 23:00:00 -0700"/>' +
+      '<Record type="HKQuantityTypeIdentifierUnknownThing" unit="x" value="1" startDate="2026-06-01 08:00:00 -0700"/></HealthData>';
+    const pts = parseWearableFile("export.xml", xml);
+    const codes = pts.map((p) => p.code).sort();
+    expect(codes).toEqual(["rhr", "steps"]);
+    expect(pts.find((p) => p.code === "rhr")?.value).toBe(61);
+  });
 });
 
 describe("lab PDF heuristic parser", () => {

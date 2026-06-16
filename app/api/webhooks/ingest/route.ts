@@ -13,10 +13,14 @@ import { importFile, ingestLab, runMonitoringSweep } from "@/lib/services";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  if (config.webhookSecret) {
-    if (req.headers.get("x-tideline-secret") !== config.webhookSecret) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+  // Fail closed: the webhook is disabled unless a secret is configured, and the
+  // caller must present it. (It targets an arbitrary userId, so it is trusted
+  // server-to-server only.)
+  if (!config.webhookSecret) {
+    return new Response("Webhook disabled: set INGEST_WEBHOOK_SECRET to enable.", { status: 503 });
+  }
+  if (req.headers.get("x-tideline-secret") !== config.webhookSecret) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   let body: { userId?: string; kind?: string; filename?: string; content?: string };

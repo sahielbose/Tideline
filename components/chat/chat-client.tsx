@@ -29,12 +29,10 @@ const DEFAULT_SUGGESTIONS = [
 export function ChatClient({
   sessionId,
   initialMessages,
-  autoAsk,
   showReviewButton = true,
 }: {
   sessionId: string;
   initialMessages: { role: "user" | "bot"; content: string; triage?: TriageBand }[];
-  autoAsk?: string;
   showReviewButton?: boolean;
 }) {
   const [messages, setMessages] = useState<Msg[]>(
@@ -43,6 +41,7 @@ export function ChatClient({
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [emergency, setEmergency] = useState(false);
+  const [crisis, setCrisis] = useState(false);
   const [suggestVisible, setSuggestVisible] = useState(true);
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -89,13 +88,14 @@ export function ChatClient({
       const nl = raw.indexOf("\n");
       const metaStr = nl >= 0 ? raw.slice(0, nl) : "{}";
       const content = nl >= 0 ? raw.slice(nl + 1) : raw;
-      let meta: { emergency?: boolean; triage?: TriageBand } = {};
+      let meta: { emergency?: boolean; crisis?: boolean; triage?: TriageBand } = {};
       try {
         meta = JSON.parse(metaStr);
       } catch {
         /* ignore */
       }
       setEmergency(Boolean(meta.emergency));
+      setCrisis(Boolean(meta.crisis));
       setTyping(false);
       const id = crypto.randomUUID();
       setMessages((prev) => [...prev, { id, role: "bot", content: "", triage: meta.triage }]);
@@ -117,12 +117,15 @@ export function ChatClient({
   };
 
   useEffect(() => {
-    if (autoAsk && !askedRef.current) {
+    if (askedRef.current) return;
+    const pending = typeof window !== "undefined" ? sessionStorage.getItem("tideline_ask") : null;
+    if (pending) {
       askedRef.current = true;
-      void send(autoAsk);
+      sessionStorage.removeItem("tideline_ask");
+      void send(pending);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoAsk]);
+  }, []);
 
   const requestReview = () => {
     startTransition(async () => {
@@ -154,8 +157,9 @@ export function ChatClient({
       <div className={`emergency ${emergency ? "show" : ""}`}>
         <TriangleAlert />
         <span>
-          If this is an emergency, call your local emergency number now or go to the nearest
-          emergency room.
+          {crisis
+            ? "You're not alone — call or text 988 (Suicide & Crisis Lifeline) now, available 24/7. If you're in immediate danger, call your local emergency number."
+            : "If this is an emergency, call your local emergency number now or go to the nearest emergency room."}
         </span>
       </div>
 

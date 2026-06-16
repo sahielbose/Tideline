@@ -60,13 +60,14 @@ export async function getTimeline(
     .where(and(eq(observations.userId, userId), eq(observations.code, "bp_systolic")))
     .orderBy(desc(observations.effectiveAt))
     .limit(1);
-  if (latestBpS) {
+  if (latestBpS && latestBpS.valueNum != null) {
     const [latestBpD] = await db
       .select()
       .from(observations)
       .where(and(eq(observations.userId, userId), eq(observations.code, "bp_diastolic")))
       .orderBy(desc(observations.effectiveAt))
       .limit(1);
+    if (latestBpD && latestBpD.valueNum != null)
     entries.push({
       id: latestBpS.id,
       category: "vital",

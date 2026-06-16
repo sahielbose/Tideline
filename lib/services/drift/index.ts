@@ -292,7 +292,7 @@ function anomaly(
   concernSign: number,
   now: Date,
 ): DriftSignal | null {
-  if (!def.zThreshold || recent.length < 3 || baseline.spread <= 0) return null;
+  if (!def.zThreshold || recent.length < 3 || !Number.isFinite(baseline.spread) || baseline.spread <= 0) return null;
   const k = def.zThreshold;
   const last2 = recent.slice(-2);
   const beyond = last2.filter((p) => {

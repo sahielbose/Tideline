@@ -45,6 +45,8 @@ export async function storeLabPanels(
   const connId = await ensureLabConnection(userId, adapter);
   const created: Lab[] = [];
   for (const panel of panels) {
+    // Drop any marker without a finite numeric value (bad CSV/PDF rows).
+    const markers = panel.markers.filter((m) => Number.isFinite(m.value));
     const [lab] = await db
       .insert(labs)
       .values({
@@ -56,7 +58,7 @@ export async function storeLabPanels(
       .returning();
 
     await db.insert(labMarkers).values(
-      panel.markers.map((m) => {
+      markers.map((m) => {
         const opt = optimalFor(m.code, m.display);
         return {
           labId: lab.id,
@@ -76,7 +78,7 @@ export async function storeLabPanels(
     const explanation = await aiExplainLab({
       panelName: panel.panelName,
       collectedAt: panel.collectedAt,
-      markers: panel.markers.map((m) => ({
+      markers: markers.map((m) => ({
         code: m.code,
         display: m.display,
         value: m.value,
@@ -172,14 +174,16 @@ export async function explainLab(id: string): Promise<string> {
   const explanation = await aiExplainLab({
     panelName: data.lab.panelName,
     collectedAt: data.lab.collectedAt,
-    markers: data.markers.map((m) => ({
-      code: m.code,
-      display: m.display,
-      value: m.value ?? 0,
-      unit: m.unit ?? "",
-      refLow: m.refLow,
-      refHigh: m.refHigh,
-    })),
+    markers: data.markers
+      .filter((m) => m.value != null && Number.isFinite(m.value))
+      .map((m) => ({
+        code: m.code,
+        display: m.display,
+        value: m.value as number,
+        unit: m.unit ?? "",
+        refLow: m.refLow,
+        refHigh: m.refHigh,
+      })),
   });
   await db.update(labs).set({ explanationMd: explanation }).where(eq(labs.id, id));
   return explanation;

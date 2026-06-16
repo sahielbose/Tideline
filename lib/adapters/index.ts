@@ -17,7 +17,7 @@ import {
   generateRecords,
   generateLabPanels,
 } from "./mock";
-import { parseLabFile, parseFhirBundle, parseWearableFile } from "./file";
+import { parseLabFile } from "./file";
 
 export interface ConnectDescriptor {
   kind: ConnectionKind;
@@ -91,40 +91,27 @@ class FileLabsAdapter implements LabsAdapter {
 }
 
 // ---- file-import implementations (records + wearables) -------------------
-// The uploaded content is captured in the connection config at connect-time so
-// a later re-sync re-parses the same source deterministically.
+// File imports are ONE-SHOT: importFile() parses + stores at import time. We do
+// NOT persist the raw file content in the connection config (it could be large
+// and is sent to the client with the connection list). A later re-sync of a
+// file connection is therefore a no-op.
 class FileRecordsAdapter implements RecordsAdapter {
   async connect(_userId: string, cfg: Record<string, unknown> = {}): Promise<ConnectDescriptor> {
     const filename = String(cfg.filename ?? "records.json");
-    return {
-      kind: "records",
-      adapter: "file",
-      label: `Records — ${filename}`,
-      status: "connected",
-      config: { filename, content: String(cfg.content ?? "") },
-    };
+    return { kind: "records", adapter: "file", label: `Records — ${filename}`, status: "connected", config: { filename } };
   }
-  async fetch(conn: ConnectDescriptor): Promise<RawRecord[]> {
-    const content = String((conn.config as Record<string, unknown>).content ?? "");
-    return content ? parseFhirBundle(content) : [];
+  async fetch(): Promise<RawRecord[]> {
+    return [];
   }
 }
 
 class FileBiometricsAdapter implements BiometricsAdapter {
   async connect(_userId: string, cfg: Record<string, unknown> = {}): Promise<ConnectDescriptor> {
     const filename = String(cfg.filename ?? "wearable.csv");
-    return {
-      kind: "wearable",
-      adapter: "file",
-      label: `Wearable — ${filename}`,
-      status: "connected",
-      config: { filename, content: String(cfg.content ?? "") },
-    };
+    return { kind: "wearable", adapter: "file", label: `Wearable — ${filename}`, status: "connected", config: { filename } };
   }
-  async fetch(conn: ConnectDescriptor): Promise<RawMetricPoint[]> {
-    const cfg = conn.config as Record<string, unknown>;
-    const content = String(cfg.content ?? "");
-    return content ? parseWearableFile(String(cfg.filename ?? "wearable.csv"), content) : [];
+  async fetch(): Promise<RawMetricPoint[]> {
+    return [];
   }
 }
 

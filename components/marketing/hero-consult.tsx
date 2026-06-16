@@ -17,7 +17,9 @@ export function HeroConsult({
 
   const go = () => {
     const q = value.trim();
-    router.push(q ? `/app/chat?ask=${encodeURIComponent(q)}` : "/app/chat");
+    // Keep symptom text OUT of the URL (no health data in URLs, §10.7).
+    if (q && typeof window !== "undefined") sessionStorage.setItem("tideline_ask", q);
+    router.push("/app/chat");
   };
 
   return (
