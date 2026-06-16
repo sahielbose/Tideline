@@ -4,7 +4,7 @@
  * explanations, persists drift_signals + insights, and — for elevated/urgent
  * signals — auto-opens a review flag and sends a notification.
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "../db/client";
 import { driftSignals, insights, type Insight } from "../db/schema";
 import { METRICS } from "../metrics";
@@ -19,9 +19,12 @@ import { SEVERITY_RANK, type DriftSignal, type InsightStatusType } from "../type
 export interface SweepResult {
   signals: number;
   insightsCreated: number;
+  insightsResolved: number;
   reviewFlags: number;
   digest: string;
 }
+
+const METRIC_NAME = (m: string) => METRICS[m]?.display ?? m;
 
 export async function detectDriftForUser(userId: string, now = new Date()) {
   const series = await getSeriesByCodes(userId, Object.keys(METRICS), 180);
@@ -38,16 +41,39 @@ export async function runMonitoringSweep(
 
   await recomputeBaselines(userId);
 
-  // Idempotent re-run: clear prior signals + untouched (status 'new') insights.
+  // Raw signals are ephemeral; recompute them each sweep.
   await db.delete(driftSignals).where(eq(driftSignals.userId, userId));
-  await db
-    .delete(insights)
-    .where(and(eq(insights.userId, userId), eq(insights.status, "new")));
+
+  const current = report.signals;
+  const currentMetrics = new Set(current.map((s) => s.metric));
+
+  // Existing, not-yet-resolved insights — we upsert against these so user state
+  // (acknowledged/flagged) survives, and we can CLOSE THE LOOP on improvement.
+  const existing = await db
+    .select()
+    .from(insights)
+    .where(and(eq(insights.userId, userId), ne(insights.status, "resolved")));
+  const byMetric = new Map(existing.filter((e) => e.metric).map((e) => [e.metric as string, e]));
 
   let insightsCreated = 0;
+  let insightsResolved = 0;
   let reviewFlagCount = 0;
 
-  for (const sig of report.signals) {
+  // Follow-up loop: a tracked insight whose metric no longer drifts has improved.
+  for (const ins of existing) {
+    if (ins.metric && !currentMetrics.has(ins.metric)) {
+      await db
+        .update(insights)
+        .set({
+          status: "resolved",
+          explanationMd: `${ins.explanationMd}\n\n✓ Update: ${METRIC_NAME(ins.metric)} has returned toward your baseline, so this is resolved.`,
+        })
+        .where(eq(insights.id, ins.id));
+      insightsResolved++;
+    }
+  }
+
+  for (const sig of current) {
     const [sigRow] = await db
       .insert(driftSignals)
       .values({
@@ -63,6 +89,23 @@ export async function runMonitoringSweep(
       .returning();
 
     const ex = await explainSignal(sig);
+    const prev = byMetric.get(sig.metric);
+
+    if (prev) {
+      // Refresh the live insight in place; preserve the user's status.
+      await db
+        .update(insights)
+        .set({
+          driftSignalId: sigRow.id,
+          title: ex.title,
+          severity: sig.severity,
+          explanationMd: ex.explanationMd,
+          recommendedAction: ex.recommendedAction,
+        })
+        .where(eq(insights.id, prev.id));
+      continue;
+    }
+
     const [insRow] = await db
       .insert(insights)
       .values({
@@ -96,16 +139,18 @@ export async function runMonitoringSweep(
     }
   }
 
-  const digest = summarizeMonitoring(report.signals);
+  const digest = summarizeMonitoring(current);
   await logAction(userId, "monitoring.sweep", {
-    signals: report.signals.length,
+    signals: current.length,
     insightsCreated,
+    insightsResolved,
     reviewFlagCount,
   });
 
   return {
-    signals: report.signals.length,
+    signals: current.length,
     insightsCreated,
+    insightsResolved,
     reviewFlags: reviewFlagCount,
     digest,
   };
