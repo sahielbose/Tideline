@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { db } from "./db/client";
 import { users, type User } from "./db/schema";
 import { config } from "./config";
-import { verifyPassword } from "./password";
+import { hashPassword, verifyPassword } from "./password";
 
 export { hashPassword, verifyPassword } from "./password";
 
@@ -56,6 +56,19 @@ export async function createSession(userId: string): Promise<void> {
 export async function destroySession(): Promise<void> {
   const jar = await cookies();
   jar.delete(COOKIE);
+}
+
+export async function registerUser(
+  email: string,
+  password: string,
+  name: string,
+): Promise<User> {
+  const [user] = await db
+    .insert(users)
+    .values({ email: email.toLowerCase().trim(), name: name.trim() || "New user", passwordHash: hashPassword(password) })
+    .returning();
+  await createSession(user.id);
+  return user;
 }
 
 export async function authenticate(email: string, password: string): Promise<User | null> {

@@ -43,6 +43,11 @@ export async function startChat(userId: string | null): Promise<ChatSession> {
   return session;
 }
 
+export async function getChatSession(id: string): Promise<ChatSession | undefined> {
+  const [s] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
+  return s;
+}
+
 export async function getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
   return db
     .select()
