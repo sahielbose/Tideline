@@ -18,10 +18,25 @@ export interface CompleteOptions {
   temperature?: number;
 }
 
+export interface ToolDef {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+export type ToolExecutor = (name: string, input: Record<string, unknown>) => Promise<unknown>;
+
+export interface ToolCompleteOptions extends CompleteOptions {
+  tools: ToolDef[];
+  executor: ToolExecutor;
+  maxIters?: number;
+}
+
 export interface LLMProvider {
   readonly name: string;
   complete(opts: CompleteOptions): Promise<string>;
   stream(opts: CompleteOptions): AsyncIterable<string>;
+  completeWithTools(opts: ToolCompleteOptions): Promise<string>;
 }
 
 class AnthropicProvider implements LLMProvider {
@@ -71,6 +86,51 @@ class AnthropicProvider implements LLMProvider {
       }
     }
   }
+
+  async completeWithTools(opts: ToolCompleteOptions): Promise<string> {
+    const client = await this.client();
+    const maxIters = opts.maxIters ?? 4;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = opts.messages.map((m) => ({ role: m.role, content: m.content }));
+    let lastText = "";
+    for (let i = 0; i < maxIters; i++) {
+      const resp = await client.messages.create({
+        model: opts.model ?? config.llm.modelAgent,
+        max_tokens: opts.maxTokens ?? 1024,
+        temperature: opts.temperature ?? 0.4,
+        system: opts.system,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tools: opts.tools as any,
+        messages,
+      });
+      lastText = resp.content
+        .filter((b): b is { type: "text"; text: string } & typeof b => b.type === "text")
+        .map((b) => b.text)
+        .join("");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const toolUses = resp.content.filter((b: any) => b.type === "tool_use");
+      if (resp.stop_reason !== "tool_use" || toolUses.length === 0) return lastText;
+
+      messages.push({ role: "assistant", content: resp.content });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const results: any[] = [];
+      for (const tu of toolUses as { id: string; name: string; input: Record<string, unknown> }[]) {
+        let out: unknown;
+        try {
+          out = await opts.executor(tu.name, tu.input ?? {});
+        } catch (e) {
+          out = { error: String(e) };
+        }
+        results.push({
+          type: "tool_result",
+          tool_use_id: tu.id,
+          content: JSON.stringify(out).slice(0, 4000),
+        });
+      }
+      messages.push({ role: "user", content: results });
+    }
+    return lastText;
+  }
 }
 
 /** A guard provider used only if something calls the LLM in keyless mode. */
@@ -80,6 +140,9 @@ class UnavailableProvider implements LLMProvider {
     throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
   }
   async *stream(): AsyncIterable<string> {
+    throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
+  }
+  async completeWithTools(): Promise<string> {
     throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
   }
 }

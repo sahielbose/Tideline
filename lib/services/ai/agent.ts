@@ -13,9 +13,21 @@ import type {
   RedFlagVerdict,
 } from "../../types";
 import { hasLLM } from "../../config";
-import { getProvider } from "./provider";
+import { getProvider, type ToolDef, type ToolExecutor } from "./provider";
 import { classifyRule } from "./redflag";
+import { searchReference } from "../reference";
 import { AGENT_SYSTEM, EMERGENCY_LEAD, CRISIS_RESOURCES } from "./prompts";
+
+/** Tool schemas exposed to the agent when an LLM is configured (CONTEXT.md §9.1). */
+export const TOOL_SCHEMAS: ToolDef[] = [
+  { name: "searchReference", description: "Search Tideline's curated general health reference notes to ground an answer.", input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
+  { name: "getLatestMetrics", description: "Get the patient's latest value for each tracked metric.", input_schema: { type: "object", properties: {} } },
+  { name: "getMetricSeries", description: "Get a recent time-series for one metric (e.g. rhr, hrv, glucose, sleep).", input_schema: { type: "object", properties: { metric: { type: "string" }, days: { type: "number" } }, required: ["metric"] } },
+  { name: "getLabs", description: "List the patient's lab panels with any out-of-range markers.", input_schema: { type: "object", properties: {} } },
+  { name: "getActiveMedications", description: "List the patient's active medications (tracking only).", input_schema: { type: "object", properties: {} } },
+  { name: "getTimeline", description: "Get recent timeline entries (insights, labs, syncs, conditions).", input_schema: { type: "object", properties: { limit: { type: "number" } } } },
+  { name: "createReviewFlag", description: "Open a flag for a (simulated) clinician review with a short summary.", input_schema: { type: "object", properties: { summary: { type: "string" } }, required: ["summary"] } },
+];
 
 export interface AgentContext {
   name?: string;
@@ -145,13 +157,37 @@ async function llmReply(
   history: ChatTurn[],
   ctx: AgentContext,
   redFlag: RedFlagVerdict,
+  toolExecutor?: ToolExecutor,
 ): Promise<AgentReply> {
   const contextBlock = buildContextBlock(ctx);
-  const system = contextBlock ? `${AGENT_SYSTEM}\n\n${contextBlock}` : AGENT_SYSTEM;
+  const system = contextBlock
+    ? `${AGENT_SYSTEM}\n\n${contextBlock}\n\nYou also have tools to fetch the patient's data and search reference notes — use them when helpful.`
+    : `${AGENT_SYSTEM}\n\nYou have a searchReference tool to ground answers.`;
   const messages = history
     .filter((t) => t.role === "user" || t.role === "assistant")
     .map((t) => ({ role: t.role as "user" | "assistant", content: t.content }));
-  const raw = await getProvider().complete({ system, messages, maxTokens: 700 });
+
+  // searchReference is pure and always available; other tools delegate to the
+  // injected, user-scoped executor (built in the chat service).
+  const exec: ToolExecutor = async (name, input) => {
+    if (name === "searchReference") return searchReference(String(input.query ?? ""), 3);
+    if (toolExecutor) return toolExecutor(name, input);
+    return { note: "Not available in this context." };
+  };
+
+  const provider = getProvider();
+  let raw: string;
+  try {
+    raw = await provider.completeWithTools({
+      system,
+      messages,
+      tools: TOOL_SCHEMAS,
+      executor: exec,
+      maxTokens: 900,
+    });
+  } catch {
+    raw = await provider.complete({ system, messages, maxTokens: 700 });
+  }
   let { content, triage } = parseTriage(raw);
 
   // Safety overrides — the classifier wins over the conversational model.
@@ -174,12 +210,21 @@ export async function respond(
   history: ChatTurn[],
   ctx: AgentContext = {},
   redFlag?: RedFlagVerdict,
+  toolExecutor?: ToolExecutor,
 ): Promise<AgentReply> {
   const text = lastUserMessage(history);
   const verdict = redFlag ?? classifyRule(text);
-  if (!hasLLM) return ruleReply(text, ctx, verdict);
+  if (!hasLLM) {
+    const reply = ruleReply(text, ctx, verdict);
+    // Ground non-emergency replies with a curated reference note (keyless retrieval).
+    if (!verdict.emergency && !verdict.crisis) {
+      const hit = searchReference(text, 1)[0];
+      if (hit) reply.content += `\n\nRelated reading — ${hit.title}: ${hit.snippet}`;
+    }
+    return reply;
+  }
   try {
-    return await llmReply(history, ctx, verdict);
+    return await llmReply(history, ctx, verdict, toolExecutor);
   } catch {
     // Never fail the chat: fall back to the safe rule-based reply.
     return ruleReply(text, ctx, verdict);

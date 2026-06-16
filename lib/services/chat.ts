@@ -19,9 +19,13 @@ import {
   type AgentContext,
 } from "./ai";
 import { listInsights } from "./insights";
-import { getLatestByMetric, getMetricStatuses } from "./metrics";
+import { getLatestByMetric, getMetricStatuses, getMetricSeries } from "./metrics";
 import { listLabs, getLab } from "./labs";
 import { listMedications } from "./medications";
+import { getTimeline } from "./timeline";
+import { createReviewFlag } from "./reviews";
+import { searchReference } from "./reference";
+import type { ToolExecutor } from "./ai/provider";
 import { METRICS, formatMetricValue } from "../metrics";
 import type {
   AgentReply,
@@ -102,6 +106,43 @@ export async function getAgentContext(userId: string | null): Promise<AgentConte
   };
 }
 
+/** User-scoped tool executor for the agent's tool-use loop (LLM path). */
+function buildToolExecutor(userId: string): ToolExecutor {
+  return async (name, input) => {
+    switch (name) {
+      case "searchReference":
+        return searchReference(String(input.query ?? ""), 3);
+      case "getLatestMetrics":
+        return getLatestByMetric(userId);
+      case "getMetricSeries":
+        return (await getMetricSeries(userId, String(input.metric), Number(input.days ?? 90))).slice(-30);
+      case "getLabs": {
+        const ls = await listLabs(userId);
+        return Promise.all(
+          ls.slice(0, 5).map(async (l) => {
+            const full = await getLab(l.id);
+            return {
+              panel: l.panelName,
+              collectedAt: l.collectedAt,
+              outOfRange: (full?.markers ?? []).filter((m) => m.flag !== "in").map((m) => `${m.display} ${m.value}${m.unit ?? ""}`),
+            };
+          }),
+        );
+      }
+      case "getActiveMedications":
+        return (await listMedications(userId)).filter((m) => m.active).map((m) => ({ name: m.name, dose: m.dose, schedule: m.schedule }));
+      case "getTimeline":
+        return getTimeline(userId, { limit: Number(input.limit ?? 10) });
+      case "createReviewFlag": {
+        const f = await createReviewFlag(userId, "chat", { summary: String(input.summary ?? "Flagged from chat") });
+        return { ok: true, id: f.id };
+      }
+      default:
+        return { error: `Unknown tool ${name}` };
+    }
+  };
+}
+
 export interface SendResult {
   verdict: RedFlagVerdict;
   reply: AgentReply;
@@ -128,7 +169,8 @@ export async function sendMessage(
   const history = await getSessionMessages(sessionId);
   const turns: ChatTurn[] = history.map((m) => ({ role: m.role, content: m.content }));
   const ctx = await getAgentContext(userId);
-  const reply = await respond(turns, ctx, verdict);
+  const exec = userId ? buildToolExecutor(userId) : undefined;
+  const reply = await respond(turns, ctx, verdict, exec);
 
   const [assistant] = await db
     .insert(chatMessages)
