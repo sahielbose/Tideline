@@ -108,6 +108,8 @@ export const referenceRanges = pgTable("reference_ranges", {
   metric: text("metric").notNull().unique(),
   low: doublePrecision("low"),
   high: doublePrecision("high"),
+  optimalLow: doublePrecision("optimal_low"),
+  optimalHigh: doublePrecision("optimal_high"),
   unit: text("unit"),
   context: jsonb("context").$type<Record<string, unknown>>().notNull().default({}),
 });
@@ -186,6 +188,9 @@ export const labMarkers = pgTable("lab_markers", {
   unit: text("unit"),
   refLow: doublePrecision("ref_low"),
   refHigh: doublePrecision("ref_high"),
+  // Optimal / longevity band (tighter than the standard reference range).
+  optimalLow: doublePrecision("optimal_low"),
+  optimalHigh: doublePrecision("optimal_high"),
   flag: text("flag").notNull().default("in"),
 });
 

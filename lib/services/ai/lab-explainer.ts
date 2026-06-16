@@ -6,6 +6,7 @@
 import { hasLLM } from "../../config";
 import { getProvider } from "./provider";
 import { LAB_SYSTEM, NOT_A_PROVIDER } from "./prompts";
+import { optimalFor, markerStatus } from "../../lab-reference";
 
 export interface LabMarkerInput {
   code: string;
@@ -44,15 +45,22 @@ function ruleExplain(panel: LabPanelInput, priors?: Record<string, number>): str
   lines.push("");
 
   const outOfRange: string[] = [];
+  const suboptimal: string[] = [];
   for (const m of panel.markers) {
-    const flag = flagFor(m);
+    const opt = optimalFor(m.code, m.display);
+    const st = markerStatus(m.value, m.refLow, m.refHigh, opt?.low, opt?.high);
     let status: string;
-    if (flag === "high") {
+    if (st === "high") {
       status = `above the reference range (${rangeText(m)})`;
       outOfRange.push(m.display);
-    } else if (flag === "low") {
+    } else if (st === "low") {
       status = `below the reference range (${rangeText(m)})`;
       outOfRange.push(m.display);
+    } else if (st === "optimal") {
+      status = `within range and at an optimal level (${rangeText(m)})`;
+    } else if (st === "suboptimal") {
+      status = `within the standard range (${rangeText(m)}) but outside the tighter optimal target`;
+      suboptimal.push(m.display);
     } else {
       status = `within range (${rangeText(m)})`;
     }
@@ -65,6 +73,11 @@ function ruleExplain(panel: LabPanelInput, priors?: Record<string, number>): str
   }
 
   lines.push("");
+  if (suboptimal.length) {
+    lines.push(
+      `**Toward optimal:** ${suboptimal.join(", ")} ${suboptimal.length === 1 ? "is" : "are"} in the standard range but not yet at the tighter optimal/longevity target — often nudge-able with lifestyle.`,
+    );
+  }
   if (outOfRange.length) {
     lines.push(
       `**What stands out:** ${outOfRange.join(", ")} ${outOfRange.length === 1 ? "is" : "are"} outside the usual range. This is common and often manageable, but it could suggest something worth discussing.`,

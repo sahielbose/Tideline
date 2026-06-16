@@ -6,12 +6,14 @@ import { getLab } from "@/lib/services";
 import { requestVisitAction } from "@/app/actions";
 import { Markdown } from "@/components/markdown";
 import { FlagForReview } from "@/components/flag-for-review";
+import { markerStatus, MARKER_STATUS_CHIP } from "@/lib/lab-reference";
 
-const FLAG: Record<string, { cls: string; label: string }> = {
-  in: { cls: "ok", label: "In range" },
-  high: { cls: "elev", label: "High" },
-  low: { cls: "watch", label: "Low" },
-};
+function rangeText(low: number | null, high: number | null, unit: string | null): string {
+  if (low != null && high != null) return `${low}–${high}${unit ? " " + unit : ""}`;
+  if (high != null) return `< ${high}${unit ? " " + unit : ""}`;
+  if (low != null) return `> ${low}${unit ? " " + unit : ""}`;
+  return "—";
+}
 
 export default async function LabDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,31 +47,27 @@ export default async function LabDetailPage({ params }: { params: Promise<{ id: 
               <th>Marker</th>
               <th>Value</th>
               <th>Reference</th>
+              <th>Optimal</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {markers.map((m) => {
-              const f = FLAG[m.flag] ?? FLAG.in;
+              const st = markerStatus(m.value ?? 0, m.refLow, m.refHigh, m.optimalLow, m.optimalHigh);
+              const chip = MARKER_STATUS_CHIP[st];
+              const hasOptimal = m.optimalLow != null || m.optimalHigh != null;
               return (
                 <tr key={m.id}>
                   <td>{m.display}</td>
                   <td>
                     <strong>{m.value}</strong> {m.unit}
                   </td>
-                  <td className="muted">
-                    {m.refLow != null && m.refHigh != null
-                      ? `${m.refLow}–${m.refHigh} ${m.unit}`
-                      : m.refHigh != null
-                        ? `< ${m.refHigh} ${m.unit}`
-                        : m.refLow != null
-                          ? `> ${m.refLow} ${m.unit}`
-                          : "—"}
-                  </td>
+                  <td className="muted">{rangeText(m.refLow, m.refHigh, m.unit)}</td>
+                  <td className="muted">{hasOptimal ? rangeText(m.optimalLow, m.optimalHigh, m.unit) : "—"}</td>
                   <td>
-                    <span className={`status ${f.cls}`}>
+                    <span className={`status ${chip.cls}`}>
                       <span className="dot" />
-                      {f.label}
+                      {st === "optimal" ? "Optimal" : st === "suboptimal" ? "Suboptimal" : chip.label}
                     </span>
                   </td>
                 </tr>

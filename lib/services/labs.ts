@@ -12,6 +12,7 @@ import { explainLab as aiExplainLab, flagFor } from "./ai";
 import { getProvider } from "./ai/provider";
 import { logAction } from "./audit";
 import { hasLLM } from "../config";
+import { optimalFor } from "../lab-reference";
 import type { AdapterKind, RawLabPanel } from "../types";
 
 async function ensureLabConnection(userId: string, adapter: AdapterKind): Promise<string> {
@@ -55,16 +56,21 @@ export async function storeLabPanels(
       .returning();
 
     await db.insert(labMarkers).values(
-      panel.markers.map((m) => ({
-        labId: lab.id,
-        code: m.code,
-        display: m.display,
-        value: m.value,
-        unit: m.unit,
-        refLow: m.refLow ?? null,
-        refHigh: m.refHigh ?? null,
-        flag: flagFor({ ...m, refLow: m.refLow ?? null, refHigh: m.refHigh ?? null }),
-      })),
+      panel.markers.map((m) => {
+        const opt = optimalFor(m.code, m.display);
+        return {
+          labId: lab.id,
+          code: m.code,
+          display: m.display,
+          value: m.value,
+          unit: m.unit,
+          refLow: m.refLow ?? null,
+          refHigh: m.refHigh ?? null,
+          optimalLow: opt?.low ?? null,
+          optimalHigh: opt?.high ?? null,
+          flag: flagFor({ ...m, refLow: m.refLow ?? null, refHigh: m.refHigh ?? null }),
+        };
+      }),
     );
 
     const explanation = await aiExplainLab({
