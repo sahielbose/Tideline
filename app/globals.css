@@ -406,6 +406,11 @@ a { color: inherit; text-decoration: none; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* care-plan task checkbox */
+.task-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; flex: none; color: #fff; cursor: pointer; transition: background .15s, border-color .15s; }
+.task-check[data-done="1"] { background: var(--ok-tx); border-color: var(--ok-tx); }
+.task-check:hover { border-color: var(--blue-200); }
+
 /* health index card */
 .health-index .hi-body { display: flex; align-items: center; gap: 16px; padding: 16px 18px; }
 .hi-ring { width: 84px; height: 84px; flex: none; }

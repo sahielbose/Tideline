@@ -20,6 +20,9 @@ import {
   importFile,
   addMedication,
   medicationInfo,
+  addCarePlanTask,
+  setCarePlanTaskStatus,
+  deleteCarePlanTask,
   updateSettings,
   exportData,
   deleteData,
@@ -178,6 +181,31 @@ export async function addMedicationAction(formData: FormData) {
 export async function medInfoAction(name: string): Promise<string> {
   await uid();
   return medicationInfo(name);
+}
+
+// ---- care-plan tasks ------------------------------------------------------
+export async function addCarePlanTaskAction(formData: FormData) {
+  const userId = await uid();
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return;
+  await addCarePlanTask(userId, { title, detail: String(formData.get("detail") ?? "") || undefined });
+  revalidatePath("/app/plan");
+}
+
+export async function addTaskFromInsightAction(insightId: string, title: string, metric: string | null) {
+  const userId = await uid();
+  await addCarePlanTask(userId, { title, sourceInsightId: insightId, metric });
+  revalidatePath("/app/plan");
+}
+
+export async function toggleCarePlanTaskAction(id: string, done: boolean) {
+  await setCarePlanTaskStatus(await uid(), id, done ? "done" : "todo");
+  revalidatePath("/app/plan");
+}
+
+export async function deleteCarePlanTaskAction(id: string) {
+  await deleteCarePlanTask(await uid(), id);
+  revalidatePath("/app/plan");
 }
 
 // ---- settings / account (confirm-gated) -----------------------------------

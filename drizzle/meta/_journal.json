@@ -15,6 +15,13 @@
       "when": 1781649657791,
       "tag": "0001_optimal_ranges",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781653485018,
+      "tag": "0002_care_plan_habits",
+      "breakpoints": true
     }
   ]
 }

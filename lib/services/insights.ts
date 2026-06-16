@@ -70,6 +70,9 @@ export async function runMonitoringSweep(
         })
         .where(eq(insights.id, ins.id));
       insightsResolved++;
+      // Close the loop on any care-plan tasks linked to this insight.
+      const { completeTasksForInsight } = await import("./plan");
+      await completeTasksForInsight(ins.id);
     }
   }
 

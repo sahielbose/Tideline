@@ -247,6 +247,33 @@ export const notifications = pgTable("notifications", {
 });
 
 // ---------------------------------------------------------------------------
+// care_plan_tasks — trackable, completable plan items (optionally metric-linked)
+// ---------------------------------------------------------------------------
+export const carePlanTasks = pgTable("care_plan_tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  detail: text("detail"),
+  metric: text("metric"),
+  status: text("status").$type<"todo" | "doing" | "done">().notNull().default("todo"),
+  sourceInsightId: uuid("source_insight_id").references(() => insights.id, { onDelete: "set null" }),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
+// ---------------------------------------------------------------------------
+// habit_tags — daily behavior tags for metric-impact correlation
+// ---------------------------------------------------------------------------
+export const habitTags = pgTable("habit_tags", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tag: text("tag").notNull(),
+  day: date("day").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // audit_log — append-only record of confirm-gated actions
 // ---------------------------------------------------------------------------
 export const auditLog = pgTable("audit_log", {
@@ -273,3 +300,5 @@ export type ChatSession = typeof chatSessions.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
+export type CarePlanTask = typeof carePlanTasks.$inferSelect;
+export type HabitTag = typeof habitTags.$inferSelect;
