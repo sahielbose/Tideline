@@ -1,0 +1,12 @@
+{
+  "drift": {
+    "minRecall": 1.0,
+    "maxFalseAlarmRate": 0.0,
+    "_note": "Every real decline must be caught (false reassurance is the dangerous failure); stable series must not raise watch+."
+  },
+  "redflag": {
+    "minRecall": 1.0,
+    "maxFalsePositiveRate": 0.2,
+    "_note": "Emergency recall is the priority; a modest false-positive rate is acceptable."
+  }
+}

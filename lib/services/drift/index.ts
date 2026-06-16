@@ -354,6 +354,12 @@ const CLUSTERS: { name: string; lead: string; members: string[]; label: string }
     members: ["glucose", "weight", "hrv"],
     label: "rising fasting glucose alongside weight and HRV changes",
   },
+  {
+    name: "respiratory",
+    lead: "spo2",
+    members: ["spo2", "rhr", "temperature"],
+    label: "falling blood oxygen with a rising heart rate and temperature",
+  },
 ];
 
 function concerning(sig: DriftSignal | null | undefined): boolean {
