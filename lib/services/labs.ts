@@ -158,18 +158,20 @@ export async function listLabs(userId: string): Promise<Lab[]> {
   return db.select().from(labs).where(eq(labs.userId, userId)).orderBy(desc(labs.collectedAt));
 }
 
+/** Ownership-scoped: returns the panel + markers only if it belongs to `userId`. */
 export async function getLab(
+  userId: string,
   id: string,
 ): Promise<{ lab: Lab; markers: LabMarker[] } | null> {
-  const [lab] = await db.select().from(labs).where(eq(labs.id, id));
+  const [lab] = await db.select().from(labs).where(and(eq(labs.id, id), eq(labs.userId, userId)));
   if (!lab) return null;
   const markers = await db.select().from(labMarkers).where(eq(labMarkers.labId, id));
   return { lab, markers };
 }
 
 /** Re-run the explainer for a panel (used by the "explain" action). */
-export async function explainLab(id: string): Promise<string> {
-  const data = await getLab(id);
+export async function explainLab(userId: string, id: string): Promise<string> {
+  const data = await getLab(userId, id);
   if (!data) throw new Error("Lab not found");
   const explanation = await aiExplainLab({
     panelName: data.lab.panelName,

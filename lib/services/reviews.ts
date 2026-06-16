@@ -30,14 +30,18 @@ export async function listReviewFlags(userId: string): Promise<ReviewFlag[]> {
     .orderBy(desc(reviewFlags.createdAt));
 }
 
-export async function getReviewFlag(id: string): Promise<ReviewFlag | undefined> {
-  const [row] = await db.select().from(reviewFlags).where(eq(reviewFlags.id, id));
+/** Ownership-scoped: returns the flag only if it belongs to `userId`. */
+export async function getReviewFlag(userId: string, id: string): Promise<ReviewFlag | undefined> {
+  const [row] = await db
+    .select()
+    .from(reviewFlags)
+    .where(and(eq(reviewFlags.id, id), eq(reviewFlags.userId, userId)));
   return row;
 }
 
 /** Generate (or regenerate) the simulated reviewer note. */
-export async function draftReviewerNote(flagId: string): Promise<string> {
-  const flag = await getReviewFlag(flagId);
+export async function draftReviewerNote(userId: string, flagId: string): Promise<string> {
+  const flag = await getReviewFlag(userId, flagId);
   if (!flag) throw new Error("Review flag not found");
   const ctx = flag.context as Record<string, unknown>;
   const note = await aiDraft({
@@ -55,8 +59,8 @@ export async function draftReviewerNote(flagId: string): Promise<string> {
 }
 
 /** Confirm-gated resolution. */
-export async function resolveReviewFlag(flagId: string, note?: string): Promise<void> {
-  const flag = await getReviewFlag(flagId);
+export async function resolveReviewFlag(userId: string, flagId: string, note?: string): Promise<void> {
+  const flag = await getReviewFlag(userId, flagId);
   if (!flag) throw new Error("Review flag not found");
   await db
     .update(reviewFlags)

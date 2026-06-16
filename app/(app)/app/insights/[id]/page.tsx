@@ -12,8 +12,8 @@ import { METRICS } from "@/lib/metrics";
 export default async function InsightDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getSessionUser();
-  const insight = await getInsight(id);
-  if (!insight || insight.userId !== user!.id) notFound();
+  const insight = await getInsight(user!.id, id);
+  if (!insight) notFound();
 
   const metricName = insight.metric ? METRICS[insight.metric]?.display : null;
 

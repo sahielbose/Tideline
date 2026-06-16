@@ -178,8 +178,12 @@ export async function listInsights(
   );
 }
 
-export async function getInsight(id: string): Promise<Insight | undefined> {
-  const [row] = await db.select().from(insights).where(eq(insights.id, id));
+/** Ownership-scoped: returns the insight only if it belongs to `userId`. */
+export async function getInsight(userId: string, id: string): Promise<Insight | undefined> {
+  const [row] = await db
+    .select()
+    .from(insights)
+    .where(and(eq(insights.id, id), eq(insights.userId, userId)));
   return row;
 }
 
@@ -189,20 +193,24 @@ export async function getHeroInsight(userId: string): Promise<Insight | null> {
   return elevated ?? list[0] ?? null;
 }
 
-export async function setInsightStatus(id: string, status: InsightStatusType): Promise<void> {
-  const ins = await getInsight(id);
+export async function setInsightStatus(
+  userId: string,
+  id: string,
+  status: InsightStatusType,
+): Promise<void> {
+  const ins = await getInsight(userId, id);
   if (!ins) throw new Error("Insight not found");
   await db.update(insights).set({ status }).where(eq(insights.id, id));
   await logAction(ins.userId, `insight.${status}`, { insightId: id });
 }
 
-export async function acknowledgeInsight(id: string): Promise<void> {
-  await setInsightStatus(id, "acknowledged");
+export async function acknowledgeInsight(userId: string, id: string): Promise<void> {
+  await setInsightStatus(userId, id, "acknowledged");
 }
 
 /** Flag an insight for review (confirm-gated at the UI): also opens a flag. */
-export async function flagInsight(id: string): Promise<void> {
-  const ins = await getInsight(id);
+export async function flagInsight(userId: string, id: string): Promise<void> {
+  const ins = await getInsight(userId, id);
   if (!ins) throw new Error("Insight not found");
   await db.update(insights).set({ status: "flagged" }).where(eq(insights.id, id));
   await createReviewFlag(ins.userId, "insight", {

@@ -90,7 +90,7 @@ export async function getAgentContext(userId: string | null): Promise<AgentConte
 
   const labs = await Promise.all(
     labRows.slice(0, 2).map(async (l) => {
-      const full = await getLab(l.id);
+      const full = await getLab(userId, l.id);
       const outOfRange = (full?.markers ?? [])
         .filter((m) => m.flag !== "in")
         .map((m) => m.display);
@@ -120,7 +120,7 @@ function buildToolExecutor(userId: string): ToolExecutor {
         const ls = await listLabs(userId);
         return Promise.all(
           ls.slice(0, 5).map(async (l) => {
-            const full = await getLab(l.id);
+            const full = await getLab(userId, l.id);
             return {
               panel: l.panelName,
               collectedAt: l.collectedAt,

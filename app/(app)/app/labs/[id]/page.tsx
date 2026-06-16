@@ -18,8 +18,8 @@ function rangeText(low: number | null, high: number | null, unit: string | null)
 export default async function LabDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getSessionUser();
-  const data = await getLab(id);
-  if (!data || data.lab.userId !== user!.id) notFound();
+  const data = await getLab(user!.id, id);
+  if (!data) notFound();
   const { lab, markers } = data;
 
   return (

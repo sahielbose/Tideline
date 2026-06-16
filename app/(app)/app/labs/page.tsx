@@ -11,7 +11,7 @@ export default async function LabsPage() {
   const labs = await listLabs(user!.id);
   const withCounts = await Promise.all(
     labs.map(async (l) => {
-      const full = await getLab(l.id);
+      const full = await getLab(user!.id, l.id);
       const markers = full?.markers ?? [];
       return { lab: l, total: markers.length, oor: markers.filter((m) => m.flag !== "in").length };
     }),

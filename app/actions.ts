@@ -11,8 +11,6 @@ import { getSessionUser, authenticate, registerUser, destroySession } from "@/li
 import {
   acknowledgeInsight,
   flagInsight,
-  getInsight,
-  getReviewFlag,
   runMonitoringSweep,
   syncConnection,
   connectSource,
@@ -37,21 +35,8 @@ async function uid(): Promise<string> {
   return user.id;
 }
 
-/** Ownership guard: ensures the current user owns the insight before mutating. */
-async function assertOwnsInsight(id: string): Promise<string> {
-  const userId = await uid();
-  const ins = await getInsight(id);
-  if (!ins || ins.userId !== userId) throw new Error("Not found");
-  return userId;
-}
-
-/** Ownership guard for review flags. */
-async function assertOwnsReview(id: string): Promise<string> {
-  const userId = await uid();
-  const flag = await getReviewFlag(id);
-  if (!flag || flag.userId !== userId) throw new Error("Not found");
-  return userId;
-}
+// Ownership is enforced inside the service getters/mutations (they take userId
+// and scope every query), so the actions just pass the current user's id.
 
 // ---- auth -----------------------------------------------------------------
 export type AuthState = { error?: string };
@@ -102,15 +87,13 @@ export async function seedDemoForCurrentUserAction() {
 
 // ---- insights -------------------------------------------------------------
 export async function ackInsightAction(id: string) {
-  await assertOwnsInsight(id);
-  await acknowledgeInsight(id);
+  await acknowledgeInsight(await uid(), id);
   revalidatePath("/app");
   revalidatePath("/app/insights");
 }
 
 export async function flagInsightAction(id: string) {
-  await assertOwnsInsight(id);
-  await flagInsight(id);
+  await flagInsight(await uid(), id);
   revalidatePath("/app");
   revalidatePath("/app/insights");
   revalidatePath("/app/reviews");
@@ -218,14 +201,12 @@ export async function deleteDataAction() {
 
 // ---- reviews (mocked clinician-in-the-loop) -------------------------------
 export async function resolveReviewAction(id: string) {
-  await assertOwnsReview(id);
-  await resolveReviewFlag(id);
+  await resolveReviewFlag(await uid(), id);
   revalidatePath("/app/reviews");
 }
 
 export async function draftReviewAction(id: string) {
-  await assertOwnsReview(id);
-  await draftReviewerNote(id);
+  await draftReviewerNote(await uid(), id);
   revalidatePath("/app/reviews");
 }
 
