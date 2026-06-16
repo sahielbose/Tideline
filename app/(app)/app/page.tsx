@@ -16,6 +16,7 @@ import { InsightActions } from "@/components/insight-actions";
 import { ActionButton } from "@/components/action-button";
 import { FlagForReview } from "@/components/flag-for-review";
 import { TimelineIcon } from "@/components/timeline-icon";
+import { HealthIndexCard } from "@/components/dashboard/health-index-card";
 import { timeAgo } from "@/lib/utils";
 
 function greeting(): string {
@@ -106,6 +107,8 @@ export default async function DashboardPage() {
 
         {/* right panel */}
         <div className="panel">
+          <HealthIndexCard data={data.healthIndex} />
+
           <div className="box">
             <div className="bhead">
               What changed <span className="count">{activeCount} active</span>

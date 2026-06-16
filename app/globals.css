@@ -406,6 +406,17 @@ a { color: inherit; text-decoration: none; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* health index card */
+.health-index .hi-body { display: flex; align-items: center; gap: 16px; padding: 16px 18px; }
+.hi-ring { width: 84px; height: 84px; flex: none; }
+.hi-num { font-size: 24px; font-weight: 700; font-family: var(--font-fraunces), serif; }
+.hi-of { font-size: 10px; }
+.hi-meta { flex: 1; }
+.hi-label { font-size: 17px; font-weight: 650; margin-bottom: 4px; }
+.hi-age { font-size: 14px; margin-bottom: 4px; }
+.hi-opp { font-size: 13px; }
+.hi-note { margin: 0; padding: 0 18px 16px; font-size: 11.5px; color: var(--muted-2); line-height: 1.5; }
+
 /* markdown blocks (AI explanations, reviewer notes) */
 .md { font-size: 14.5px; color: var(--ink); line-height: 1.6; }
 .md p { margin: 0 0 10px; color: var(--muted); }
