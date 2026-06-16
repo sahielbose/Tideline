@@ -49,6 +49,9 @@ export const config = {
     recordsKey: env("RECORDS_SANDBOX_KEY"),
     wearablesKey: env("WEARABLES_SANDBOX_KEY"),
   },
+
+  /** Shared secret for ingestion webhook callbacks (optional; enforced if set). */
+  webhookSecret: env("INGEST_WEBHOOK_SECRET"),
 } as const;
 
 export const hasLLM = config.llm.provider === "anthropic";
