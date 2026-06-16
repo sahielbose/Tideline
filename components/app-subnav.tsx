@@ -7,10 +7,12 @@ const LINKS = [
   { href: "/app", label: "Dashboard", exact: true },
   { href: "/app/timeline", label: "Timeline" },
   { href: "/app/insights", label: "Insights" },
+  { href: "/app/plan", label: "Plan" },
   { href: "/app/labs", label: "Labs" },
   { href: "/app/medications", label: "Medications" },
   { href: "/app/connections", label: "Connections" },
   { href: "/app/reviews", label: "Reviews" },
+  { href: "/app/notifications", label: "Notifications" },
   { href: "/app/settings", label: "Settings" },
 ];
 

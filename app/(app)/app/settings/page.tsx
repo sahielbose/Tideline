@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bell, BellOff, ShieldCheck, LogOut, Info } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -43,7 +44,7 @@ export default async function SettingsPage() {
         <div className="ins" style={{ borderBottom: "none" }}>
           <p style={{ marginBottom: 12 }}>
             Get an email when an elevated insight appears and a weekly digest. Email is sent only
-            after you opt in here.
+            after you opt in here. <Link href="/app/notifications" style={{ color: "var(--blue-ink)" }}>View notifications →</Link>
           </p>
           {optedIn ? (
             <ActionButton

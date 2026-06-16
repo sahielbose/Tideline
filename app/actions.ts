@@ -19,6 +19,7 @@ import {
   ingestLabPdf,
   importFile,
   addMedication,
+  medicationInfo,
   updateSettings,
   exportData,
   deleteData,
@@ -169,6 +170,11 @@ export async function addMedicationAction(formData: FormData) {
     notes: String(formData.get("notes") ?? "") || undefined,
   });
   revalidatePath("/app/medications");
+}
+
+export async function medInfoAction(name: string): Promise<string> {
+  await uid();
+  return medicationInfo(name);
 }
 
 // ---- settings / account (confirm-gated) -----------------------------------

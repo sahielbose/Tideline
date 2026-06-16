@@ -3,7 +3,7 @@
  * email is only sent when the user has given confirm-gated opt-in AND email is
  * configured. With no RESEND_API_KEY, "email" is logged to the console.
  */
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { notifications, users } from "../db/schema";
 import { config, hasEmail } from "../config";
@@ -60,11 +60,11 @@ export async function sendNotification(userId: string, input: NotifyInput) {
   return inApp;
 }
 
-export async function listNotifications(userId: string, limit = 20) {
+export async function listNotifications(userId: string, limit = 30) {
   return db
     .select()
     .from(notifications)
     .where(eq(notifications.userId, userId))
-    .orderBy(notifications.createdAt)
+    .orderBy(desc(notifications.createdAt))
     .limit(limit);
 }

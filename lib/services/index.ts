@@ -15,4 +15,5 @@ export * from "./timeline";
 export * from "./account";
 export * from "./dashboard";
 export * from "./health-index";
+export * from "./plan";
 export { detectDrift } from "./drift";

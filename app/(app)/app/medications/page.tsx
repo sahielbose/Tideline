@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { listMedications } from "@/lib/services";
 import { addMedicationAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { MedInfo } from "@/components/medications/med-info";
 
 export default async function MedicationsPage() {
   const user = await getSessionUser();
@@ -34,7 +35,7 @@ export default async function MedicationsPage() {
             </div>
           )}
           {meds.map((m) => (
-            <div className="conn-item" key={m.id} style={{ padding: "14px 18px" }}>
+            <div className="conn-item" key={m.id} style={{ padding: "14px 18px", alignItems: "flex-start" }}>
               <span className="ic">
                 <Pill />
               </span>
@@ -45,6 +46,7 @@ export default async function MedicationsPage() {
                 <div className="s">
                   {[m.schedule, m.notes].filter(Boolean).join(" · ") || "No schedule set"}
                 </div>
+                <MedInfo name={m.name} />
               </div>
               <span className={`status ${m.active ? "ok" : "info"}`}>
                 <span className="dot" />
