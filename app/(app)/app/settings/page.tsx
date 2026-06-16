@@ -80,6 +80,9 @@ export default async function SettingsPage() {
             data.
           </p>
           <div className="acts" style={{ gap: 10, flexWrap: "wrap" }}>
+            <Link className="btn btn-light" href="/app/report">
+              Health report (PDF)
+            </Link>
             <ExportButton />
             <ConfirmAction
               action={deleteDataAction}
