@@ -23,6 +23,8 @@ export interface MetricDef {
   minReadings: number;
   /** Trend-drift threshold: |slope| per week that counts as drift. */
   trendDeltaPerWeek?: number;
+  /** A change from baseline (in units) that is clearly clinically meaningful. */
+  clinicalDelta?: number;
   /** Robust z threshold for the personal-anomaly signal. */
   zThreshold?: number;
   /** Show on the main dashboard grid. */
@@ -50,6 +52,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 60,
     minReadings: 7,
     trendDeltaPerWeek: 3,
+    clinicalDelta: 10,
     zThreshold: 3,
     dashboard: true,
   },
@@ -65,6 +68,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 60,
     minReadings: 7,
     trendDeltaPerWeek: 4,
+    clinicalDelta: 12,
     zThreshold: 3,
     dashboard: true,
   },
@@ -80,6 +84,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 90,
     minReadings: 5,
     trendDeltaPerWeek: 2.5,
+    clinicalDelta: 10,
     zThreshold: 3,
     dashboard: false,
   },
@@ -95,6 +100,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 90,
     minReadings: 5,
     trendDeltaPerWeek: 2,
+    clinicalDelta: 8,
     zThreshold: 3,
     dashboard: false,
   },
@@ -110,6 +116,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 90,
     minReadings: 5,
     trendDeltaPerWeek: 1.5,
+    clinicalDelta: 10,
     zThreshold: 3,
     dashboard: true,
   },
@@ -125,6 +132,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 30,
     minReadings: 7,
     trendDeltaPerWeek: 0.25,
+    clinicalDelta: 1,
     zThreshold: 3,
     dashboard: true,
     format: hoursToHM,
@@ -153,6 +161,7 @@ export const METRICS: Record<string, MetricDef> = {
     concern: "low",
     refLow: 95,
     refHigh: 100,
+    clinicalDelta: 3,
     baselineWindowDays: 30,
     minReadings: 7,
     zThreshold: 3.5,
@@ -170,6 +179,7 @@ export const METRICS: Record<string, MetricDef> = {
     baselineWindowDays: 90,
     minReadings: 5,
     trendDeltaPerWeek: 1.2,
+    clinicalDelta: 5,
     zThreshold: 3.5,
     dashboard: true,
   },
@@ -182,6 +192,7 @@ export const METRICS: Record<string, MetricDef> = {
     concern: "both",
     refLow: 97,
     refHigh: 99.5,
+    clinicalDelta: 1.5,
     baselineWindowDays: 30,
     minReadings: 5,
     zThreshold: 3,
