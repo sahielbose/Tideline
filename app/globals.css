@@ -121,6 +121,8 @@ a { color: inherit; text-decoration: none; }
 .brand .word { font-family: var(--font-fraunces), Fraunces, serif; font-weight: 600; letter-spacing: -.02em; }
 .brand .word b { color: var(--blue-ink); font-weight: 600; }
 .nav-hamb { display: none; }
+/* mobile menu hidden by default; revealed via the hamburger only at < 880px */
+.mobile-menu { display: none; }
 
 .tabs { display: flex; align-items: center; gap: 2px; background: #fff; border: 1px solid var(--line); padding: 5px; border-radius: 999px; box-shadow: var(--shadow); position: relative; }
 .tab { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 9px 17px; border-radius: 999px; font-size: 14.5px; font-weight: 550; color: var(--muted); transition: color .2s; background: transparent; }
