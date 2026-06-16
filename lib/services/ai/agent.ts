@@ -15,7 +15,7 @@ import type {
 import { hasLLM } from "../../config";
 import { getProvider, type ToolDef, type ToolExecutor } from "./provider";
 import { classifyRule } from "./redflag";
-import { searchReference } from "../reference";
+import { retrieve } from "../reference";
 import { AGENT_SYSTEM, EMERGENCY_LEAD, CRISIS_RESOURCES } from "./prompts";
 
 /** Tool schemas exposed to the agent when an LLM is configured (CONTEXT.md §9.1). */
@@ -170,7 +170,7 @@ async function llmReply(
   // searchReference is pure and always available; other tools delegate to the
   // injected, user-scoped executor (built in the chat service).
   const exec: ToolExecutor = async (name, input) => {
-    if (name === "searchReference") return searchReference(String(input.query ?? ""), 3);
+    if (name === "searchReference") return retrieve(String(input.query ?? ""), 3);
     if (toolExecutor) return toolExecutor(name, input);
     return { note: "Not available in this context." };
   };
@@ -218,7 +218,7 @@ export async function respond(
     const reply = ruleReply(text, ctx, verdict);
     // Ground non-emergency replies with a curated reference note (keyless retrieval).
     if (!verdict.emergency && !verdict.crisis) {
-      const hit = searchReference(text, 1)[0];
+      const hit = (await retrieve(text, 1))[0];
       if (hit) reply.content += `\n\nRelated reading — ${hit.title}: ${hit.snippet}`;
     }
     return reply;

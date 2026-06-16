@@ -7,6 +7,9 @@
  * without changing callers. All text is original, general, and hedged — it
  * grounds answers to reduce hallucination; it is not medical advice.
  */
+import { sql } from "../db/client";
+import { embed } from "./embedder";
+
 export interface ReferenceDoc {
   id: string;
   title: string;
@@ -90,7 +93,7 @@ export interface ReferenceHit {
   score: number;
 }
 
-/** Keyword-overlap retrieval over the curated corpus. */
+/** Keyword-overlap retrieval over the curated corpus (always available). */
 export function searchReference(query: string, k = 2): ReferenceHit[] {
   const q = tokens(query);
   if (!q.length) return [];
@@ -107,4 +110,44 @@ export function searchReference(query: string, k = 2): ReferenceHit[] {
     .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, k);
+}
+
+// ---- pgvector-backed semantic retrieval (optional) ------------------------
+let embeddingsTable: boolean | null = null;
+
+/** Cached check for whether the optional pgvector `embeddings` table exists. */
+export async function hasEmbeddings(): Promise<boolean> {
+  if (embeddingsTable !== null) return embeddingsTable;
+  try {
+    const r = await sql`select to_regclass('public.embeddings') as t`;
+    embeddingsTable = Boolean(r[0]?.t);
+  } catch {
+    embeddingsTable = false;
+  }
+  return embeddingsTable;
+}
+
+/**
+ * Unified retrieval: pgvector cosine search when the embeddings table exists,
+ * otherwise the in-memory keyword search. Callers should use this.
+ */
+export async function retrieve(query: string, k = 2): Promise<ReferenceHit[]> {
+  if (!query.trim()) return [];
+  if (await hasEmbeddings()) {
+    try {
+      const e = JSON.stringify(await embed(query));
+      const rows = await sql<{ ref_id: string; title: string; content: string; score: number }[]>`
+        select ref_id, title, content, 1 - (embedding <=> ${e}::vector) as score
+        from embeddings
+        where kind = 'reference'
+        order by embedding <=> ${e}::vector
+        limit ${k}`;
+      if (rows.length) {
+        return rows.map((r) => ({ id: r.ref_id, title: r.title, snippet: r.content, score: Number(r.score) }));
+      }
+    } catch {
+      // fall back to keyword on any vector error
+    }
+  }
+  return searchReference(query, k);
 }

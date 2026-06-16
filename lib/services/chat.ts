@@ -24,7 +24,7 @@ import { listLabs, getLab } from "./labs";
 import { listMedications } from "./medications";
 import { getTimeline } from "./timeline";
 import { createReviewFlag } from "./reviews";
-import { searchReference } from "./reference";
+import { retrieve } from "./reference";
 import type { ToolExecutor } from "./ai/provider";
 import { METRICS, formatMetricValue } from "../metrics";
 import type {
@@ -111,7 +111,7 @@ function buildToolExecutor(userId: string): ToolExecutor {
   return async (name, input) => {
     switch (name) {
       case "searchReference":
-        return searchReference(String(input.query ?? ""), 3);
+        return retrieve(String(input.query ?? ""), 3);
       case "getLatestMetrics":
         return getLatestByMetric(userId);
       case "getMetricSeries":
