@@ -12,7 +12,7 @@ import { explainLab as aiExplainLab, flagFor } from "./ai";
 import { getProvider } from "./ai/provider";
 import { logAction } from "./audit";
 import { hasLLM } from "../config";
-import { optimalFor } from "../lab-reference";
+import { optimalFor, markerStatus, type MarkerStatus } from "../lab-reference";
 import type { AdapterKind, RawLabPanel } from "../types";
 
 async function ensureLabConnection(userId: string, adapter: AdapterKind): Promise<string> {
@@ -189,4 +189,68 @@ export async function explainLab(userId: string, id: string): Promise<string> {
   });
   await db.update(labs).set({ explanationMd: explanation }).where(eq(labs.id, id));
   return explanation;
+}
+
+// ---- biomarker trends across draws (CONTEXT.md §4.6 personal trend) --------
+export interface Biomarker {
+  code: string;
+  display: string;
+  unit: string;
+  latest: number;
+  previous: number | null;
+  refLow: number | null;
+  refHigh: number | null;
+  optimalLow: number | null;
+  optimalHigh: number | null;
+  status: MarkerStatus;
+  history: { at: string; value: number }[];
+}
+
+const MARKER_RANK: Record<MarkerStatus, number> = { high: 4, low: 3, suboptimal: 2, in: 1, optimal: 0 };
+
+/** Latest value + cross-draw history for each distinct lab marker, worst first. */
+export async function getBiomarkers(userId: string): Promise<Biomarker[]> {
+  const rows = await db
+    .select({
+      code: labMarkers.code,
+      display: labMarkers.display,
+      value: labMarkers.value,
+      unit: labMarkers.unit,
+      refLow: labMarkers.refLow,
+      refHigh: labMarkers.refHigh,
+      optimalLow: labMarkers.optimalLow,
+      optimalHigh: labMarkers.optimalHigh,
+      at: labs.collectedAt,
+    })
+    .from(labMarkers)
+    .innerJoin(labs, eq(labMarkers.labId, labs.id))
+    .where(eq(labs.userId, userId))
+    .orderBy(labs.collectedAt);
+
+  const byCode = new Map<string, typeof rows>();
+  for (const r of rows) {
+    if (r.value == null) continue;
+    const arr = byCode.get(r.code) ?? [];
+    arr.push(r);
+    byCode.set(r.code, arr);
+  }
+
+  const out: Biomarker[] = [...byCode.values()].map((series) => {
+    const last = series[series.length - 1];
+    const prev = series.length > 1 ? series[series.length - 2] : undefined;
+    return {
+      code: last.code,
+      display: last.display,
+      unit: last.unit ?? "",
+      latest: last.value as number,
+      previous: (prev?.value ?? null) as number | null,
+      refLow: last.refLow,
+      refHigh: last.refHigh,
+      optimalLow: last.optimalLow,
+      optimalHigh: last.optimalHigh,
+      status: markerStatus(last.value as number, last.refLow, last.refHigh, last.optimalLow, last.optimalHigh),
+      history: series.map((s) => ({ at: s.at.toISOString(), value: s.value as number })),
+    };
+  });
+  return out.sort((a, b) => MARKER_RANK[b.status] - MARKER_RANK[a.status]);
 }

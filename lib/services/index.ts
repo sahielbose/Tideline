@@ -16,4 +16,8 @@ export * from "./account";
 export * from "./dashboard";
 export * from "./health-index";
 export * from "./plan";
+export * from "./readiness";
+export * from "./body-systems";
+export * from "./risk";
+export * from "./care-gaps";
 export { detectDrift } from "./drift";

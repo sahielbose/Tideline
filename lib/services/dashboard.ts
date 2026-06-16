@@ -15,6 +15,7 @@ import { listInsights, getHeroInsight } from "./insights";
 import { getTimeline } from "./timeline";
 import { listConnections } from "./ingestion";
 import { getHealthIndex, type HealthIndexResult } from "./health-index";
+import { getReadiness, type Readiness } from "./readiness";
 import type { Insight, Connection } from "../db/schema";
 import type { TimelineEntry } from "./timeline";
 
@@ -49,10 +50,11 @@ export interface DashboardData {
   activity: TimelineEntry[];
   connections: Connection[];
   healthIndex: HealthIndexResult;
+  readiness: Readiness;
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  const [latest, statuses, baselines, insightList, hero, activity, conns, series, healthIndex] =
+  const [latest, statuses, baselines, insightList, hero, activity, conns, series, healthIndex, readiness] =
     await Promise.all([
       getLatestByMetric(userId),
       getMetricStatuses(userId),
@@ -67,6 +69,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         60,
       ),
       getHealthIndex(userId),
+      getReadiness(userId),
     ]);
 
   const tail = (code: string, n = 24) => (series[code] ?? []).slice(-n).map((p) => p.v);
@@ -115,5 +118,6 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     activity,
     connections: conns,
     healthIndex,
+    readiness,
   };
 }

@@ -157,29 +157,34 @@ function marker(
 
 export function generateLabPanels(now: Date = new Date()): RawLabPanel[] {
   const ago = (days: number) => new Date(now.getTime() - days * DAY).toISOString();
-  return [
-    {
-      panelName: "Lipid panel",
-      collectedAt: ago(1),
-      markers: [
-        marker("chol-total", "Total cholesterol", 205, "mg/dL", 125, 200),
-        marker("ldl", "LDL cholesterol", 132, "mg/dL", 0, 100),
-        marker("hdl", "HDL cholesterol", 58, "mg/dL", 40, 120),
-        marker("trig", "Triglycerides", 120, "mg/dL", 0, 150),
-      ],
-    },
-    {
-      panelName: "Metabolic panel",
-      collectedAt: ago(34),
-      markers: [
-        marker("glucose-fasting", "Fasting glucose", 96, "mg/dL", 70, 99),
-        marker("hba1c", "Hemoglobin A1c", 5.6, "%", 4.0, 5.6),
-        marker("creatinine", "Creatinine", 0.9, "mg/dL", 0.6, 1.3),
-        marker("egfr", "eGFR", 95, "mL/min", 60, 200),
-        marker("alt", "ALT", 24, "U/L", 7, 56),
-      ],
-    },
-  ];
+  // Three draws over ~9 months so every marker has a trend (oldest -> newest).
+  const draws = [270, 120, 1];
+  const lipid = (i: number): RawLabPanel => ({
+    panelName: "Lipid panel",
+    collectedAt: ago(draws[i]),
+    markers: [
+      marker("chol-total", "Total cholesterol", [190, 198, 205][i], "mg/dL", 125, 200),
+      marker("ldl", "LDL cholesterol", [118, 126, 132][i], "mg/dL", 0, 100),
+      marker("hdl", "HDL cholesterol", [60, 59, 58][i], "mg/dL", 40, 120),
+      marker("trig", "Triglycerides", [110, 115, 120][i], "mg/dL", 0, 150),
+    ],
+  });
+  const metabolic = (i: number): RawLabPanel => ({
+    panelName: "Metabolic panel",
+    collectedAt: ago(draws[i]),
+    markers: [
+      marker("glucose-fasting", "Fasting glucose", [90, 93, 96][i], "mg/dL", 70, 99),
+      marker("hba1c", "Hemoglobin A1c", [5.3, 5.5, 5.6][i], "%", 4.0, 5.6),
+      marker("creatinine", "Creatinine", [0.9, 0.9, 0.9][i], "mg/dL", 0.6, 1.3),
+      marker("egfr", "eGFR", [98, 96, 95][i], "mL/min", 60, 200),
+      marker("alt", "ALT", [22, 23, 24][i], "U/L", 7, 56),
+    ],
+  });
+  const panels: RawLabPanel[] = [];
+  for (let i = 0; i < draws.length; i++) {
+    panels.push(lipid(i), metabolic(i));
+  }
+  return panels;
 }
 
 export const MOCK_MEDICATIONS = [

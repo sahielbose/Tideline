@@ -17,6 +17,7 @@ import { ActionButton } from "@/components/action-button";
 import { FlagForReview } from "@/components/flag-for-review";
 import { TimelineIcon } from "@/components/timeline-icon";
 import { HealthIndexCard } from "@/components/dashboard/health-index-card";
+import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { timeAgo } from "@/lib/utils";
 
 function greeting(): string {
@@ -107,6 +108,7 @@ export default async function DashboardPage() {
 
         {/* right panel */}
         <div className="panel">
+          <ReadinessCard data={data.readiness} />
           <HealthIndexCard data={data.healthIndex} />
 
           <div className="box">
