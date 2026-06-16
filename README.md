@@ -148,6 +148,11 @@ Then open <http://localhost:3000>:
 Optional: run the background jobs runner with `npm run inngest` (no keys needed).
 The app works without it — ingestion and the monitoring sweep also run inline.
 
+**Production notes:** set a strong `AUTH_SECRET` (there is no production
+fallback), serve over **HTTPS** (session cookies are `Secure`), and leave
+`DEMO_AUTOLOGIN` unset (auto-login is dev-only and off in production). The
+ingestion webhook is disabled unless `INGEST_WEBHOOK_SECRET` is set.
+
 ### Scripts
 
 | Command | What it does |
