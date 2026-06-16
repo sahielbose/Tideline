@@ -50,11 +50,16 @@ explanation → a path to action → responsible safety behavior.
 - **Unified timeline**, metric detail charts, medication tracking + general info
   (tracking only), connection management, and a **simulated** clinician review queue.
 - **Optimal / longevity ranges** on labs (the "optimal vs normal" distinction),
-  an illustrative **health-index + health-age** card, and a personalized
-  **action plan** that groups insights into next steps.
+  an illustrative **health-index + health-age** card, a daily **readiness /
+  recovery** score, **body-system rollups**, and **risk & screening** (metabolic-
+  syndrome criteria, cardiometabolic band, age/sex preventive-care gaps).
+- **Longitudinal biomarkers** trended across draws, a trackable **care plan**
+  (tasks that auto-complete when a metric returns to baseline), **habit tags**
+  with metric-impact correlation, and a printable **health report** (PDF).
 - **File imports**: FHIR R4 bundles, Apple Health exports / CSV, and lab PDFs.
 - **Retrieval-grounded, tool-calling chat**: the agent fetches your data and
-  cites a curated reference corpus (works with zero keys).
+  cites a curated reference corpus — keyword search by default, or **pgvector**
+  cosine search when the optional embeddings index is built (works with zero keys).
 - **Confirm-gates** on every real-world action; **data export & delete**; an
   append-only audit log; per-user ownership checks on all mutations.
 
@@ -163,10 +168,12 @@ ingestion webhook is disabled unless `INGEST_WEBHOOK_SECRET` is set.
 | `npm run db:migrate` | Apply Drizzle migrations |
 | `npm run db:generate` | Generate a migration from the schema |
 | `npm run seed` | (Re)seed the demo account |
+| `npm run db:embeddings` | Optional: build the pgvector retrieval index (needs pgvector) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run test` | All Vitest tests |
-| `npm run eval` | The eval suite (drift + AI guardrails) |
+| `npm run eval` | The eval suite (drift + AI guardrails + advanced logic) |
+| `npm run eval:judge` | Optional LLM-as-judge suite (needs `LLM_API_KEY`) |
 
 ---
 
@@ -273,15 +280,23 @@ drizzle/              generated migrations
   (`/api/webhooks/ingest`); email digests/alerts via Resend (console fallback);
   key-gated sandbox adapter stubs. Downloadable sample files under
   [`public/samples/`](public/samples) let you exercise every import.
-- **Phase 3 — done:** optimal / longevity lab ranges; an illustrative
-  health-index + health-age card; a personalized action plan; agent tool-calling
-  (getMetricSeries, getLabs, createReviewFlag, searchReference, …); retrieval-
-  grounded chat over a curated reference corpus (embedding-free, no pgvector
-  required); a richer cross-signal rubric; a follow-up loop that auto-resolves
-  insights on return to baseline; and a drift/red-flag benchmark with thresholds.
+- **Phase 3 — done:** optimal / longevity lab ranges; health-index + health-age,
+  daily readiness, body-system rollups, risk & screening; longitudinal
+  biomarkers; trackable auto-resolving care-plan tasks; habit-tag correlation;
+  printable health report; agent tool-calling; retrieval-grounded chat with an
+  optional **pgvector** index (keyword fallback otherwise); a richer cross-signal
+  rubric; a follow-up loop; a drift/red-flag benchmark; and an optional,
+  key-gated **LLM-as-judge** eval suite (`npm run eval:judge`).
 
-Future: real vendor sandbox adapters (Fasten/Terra/Junction), pgvector-backed
-embeddings for larger reference corpora, and an LLM-as-judge eval suite.
+Future (needs vendor accounts/keys): real sandbox adapters
+(Fasten/Terra/Junction), live Resend email + hosted Inngest, and true semantic
+embeddings (Ollama/hosted) behind the existing retrieval seam.
+
+> **Optional pgvector retrieval:** the app uses keyword retrieval by default.
+> To enable vector search, ensure the `vector` extension is installable, then
+> run `npm run db:embeddings`. The retrieval layer auto-detects the embeddings
+> table and falls back to keyword search when it is absent — so zero-setup is
+> preserved either way.
 
 ## License
 
