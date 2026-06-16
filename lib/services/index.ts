@@ -20,4 +20,5 @@ export * from "./readiness";
 export * from "./body-systems";
 export * from "./risk";
 export * from "./care-gaps";
+export * from "./habits";
 export { detectDrift } from "./drift";

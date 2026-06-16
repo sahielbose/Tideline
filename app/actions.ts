@@ -23,6 +23,7 @@ import {
   addCarePlanTask,
   setCarePlanTaskStatus,
   deleteCarePlanTask,
+  toggleHabit,
   updateSettings,
   exportData,
   deleteData,
@@ -206,6 +207,12 @@ export async function toggleCarePlanTaskAction(id: string, done: boolean) {
 export async function deleteCarePlanTaskAction(id: string) {
   await deleteCarePlanTask(await uid(), id);
   revalidatePath("/app/plan");
+}
+
+// ---- habit tags -----------------------------------------------------------
+export async function toggleHabitAction(tag: string) {
+  await toggleHabit(await uid(), tag);
+  revalidatePath("/app/habits");
 }
 
 // ---- settings / account (confirm-gated) -----------------------------------

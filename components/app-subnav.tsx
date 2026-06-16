@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/app/timeline", label: "Timeline" },
   { href: "/app/insights", label: "Insights" },
   { href: "/app/plan", label: "Plan" },
+  { href: "/app/habits", label: "Habits" },
   { href: "/app/biomarkers", label: "Biomarkers" },
   { href: "/app/body-systems", label: "Body systems" },
   { href: "/app/risk", label: "Risk" },

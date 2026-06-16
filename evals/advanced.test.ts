@@ -3,6 +3,7 @@ import { computeReadiness } from "../lib/services/readiness";
 import { computeBodySystems } from "../lib/services/body-systems";
 import { computeRisk } from "../lib/services/risk";
 import { computeCareGaps } from "../lib/services/care-gaps";
+import { computeHabitCorrelations } from "../lib/services/habits";
 
 describe("readiness score", () => {
   it("scores a favorable day high and a strained day lower (monotonic)", () => {
@@ -80,5 +81,21 @@ describe("care gaps (preventive screening)", () => {
 
   it("returns nothing without an age", () => {
     expect(computeCareGaps({ age: null, sex: "female", lastDates: {}, now })).toEqual([]);
+  });
+});
+
+describe("habit correlation", () => {
+  const dayAvg = {
+    rhr: { "06-01": 70, "06-02": 71, "06-03": 69, "05-01": 58, "05-02": 57, "05-03": 59, "05-04": 58 },
+  };
+  it("surfaces a tag's association and direction", () => {
+    const c = computeHabitCorrelations(["rhr"], dayAvg, { "Poor sleep": ["06-01", "06-02", "06-03"] });
+    expect(c[0].tag).toBe("Poor sleep");
+    expect(c[0].n).toBe(3);
+    expect(c[0].effects[0].deltaPct).toBeGreaterThan(0); // RHR higher on tagged days
+  });
+  it("suppresses small samples (< 3 tagged days)", () => {
+    const c = computeHabitCorrelations(["rhr"], dayAvg, { "Travel": ["06-01", "06-02"] });
+    expect(c).toEqual([]);
   });
 });

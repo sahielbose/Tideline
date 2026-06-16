@@ -8,7 +8,7 @@
 import "./env";
 import { eq } from "drizzle-orm";
 import { db, sql } from "../lib/db/client";
-import { users, referenceRanges } from "../lib/db/schema";
+import { users, referenceRanges, habitTags } from "../lib/db/schema";
 import { hashPassword } from "../lib/password";
 import { METRICS } from "../lib/metrics";
 import { MOCK_MEDICATIONS } from "../lib/adapters/mock";
@@ -76,6 +76,17 @@ export async function seed() {
     });
   }
   console.log(`  • added ${MOCK_MEDICATIONS.length} medications`);
+
+  // Habit tags: a recent poor-sleep stretch (tracks with the RHR/HRV drift)
+  // and older workout days, so correlations have signal.
+  const day = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  const tagRows: { userId: string; tag: string; day: string }[] = [];
+  for (const d of [0, 1, 3, 4, 6, 8, 10, 12, 13]) tagRows.push({ userId: user.id, tag: "Poor sleep", day: day(d) });
+  for (const d of [2, 5, 9]) tagRows.push({ userId: user.id, tag: "Alcohol", day: day(d) });
+  for (const d of [1, 4, 7]) tagRows.push({ userId: user.id, tag: "Late caffeine", day: day(d) });
+  for (const d of [40, 43, 46, 49, 52, 55]) tagRows.push({ userId: user.id, tag: "Workout", day: day(d) });
+  await db.insert(habitTags).values(tagRows);
+  console.log(`  • logged ${tagRows.length} habit tags`);
 
   // Run the monitoring sweep → drift signals, insights, review flag, notification.
   const sweep = await runMonitoringSweep(user.id, { autoEscalate: true });
