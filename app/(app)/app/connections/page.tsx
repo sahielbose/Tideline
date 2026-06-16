@@ -1,8 +1,15 @@
-import { FolderHeart, Heart, FlaskConical, RefreshCw, Sparkles } from "lucide-react";
+import { FolderHeart, Heart, FlaskConical, RefreshCw, Sparkles, Download } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { listConnections } from "@/lib/services";
-import { connectAction, syncDataAction, loadDemoLabAction } from "@/app/actions";
+import {
+  connectAction,
+  syncDataAction,
+  loadDemoLabAction,
+  importRecordsAction,
+  importWearableAction,
+} from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
+import { UploadFile } from "@/components/upload-file";
 import { UploadLab } from "@/components/labs/upload-lab";
 import { timeAgo } from "@/lib/utils";
 
@@ -19,7 +26,7 @@ export default async function ConnectionsPage() {
       <div className="page-head">
         <div>
           <h1 className="serif h1">Connections</h1>
-          <p className="sub">Records, wearables, and labs — and when they last synced.</p>
+          <p className="sub">Records, wearables, and labs — connect demo data or import your own files.</p>
         </div>
         <div className="head-actions">
           <ActionButton action={syncDataAction} className="btn btn-light" toast="Synced your latest data" pendingLabel="Syncing…">
@@ -63,15 +70,21 @@ export default async function ConnectionsPage() {
             <FolderHeart />
           </span>
           <h3>Medical records</h3>
-          <p>Connect records from health systems via the records adapter (demo data in this build).</p>
+          <p>Connect demo records, or import a FHIR R4 bundle (JSON).</p>
           <div className="logo-row" style={{ justifyContent: "flex-start", gap: 16, opacity: 0.55, margin: "12px 0 16px" }}>
             {RECORD_ORGS.slice(0, 4).map((o) => (
               <span key={o}>{o}</span>
             ))}
           </div>
-          <ActionButton action={connectAction.bind(null, "records", "mock")} className="btn btn-primary" toast="Records connected" pendingLabel="Connecting…">
-            Connect records
-          </ActionButton>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <ActionButton action={connectAction.bind(null, "records", "mock")} className="btn btn-primary" toast="Records connected" pendingLabel="Connecting…">
+              Connect demo records
+            </ActionButton>
+            <UploadFile action={importRecordsAction} accept=".json,application/json" label="Import FHIR bundle" toast="Importing records…" />
+            <a className="conn-sample" href="/samples/fhir-bundle.json" download>
+              <Download size={13} /> sample bundle
+            </a>
+          </div>
         </div>
 
         <div className="feature">
@@ -79,15 +92,21 @@ export default async function ConnectionsPage() {
             <Heart />
           </span>
           <h3>Wearable</h3>
-          <p>Sync resting HR, HRV, sleep, SpO₂, steps, and more through the biometrics adapter.</p>
+          <p>Sync demo biometrics, or import an Apple Health export (XML) or CSV.</p>
           <div className="logo-row" style={{ justifyContent: "flex-start", gap: 16, opacity: 0.55, margin: "12px 0 16px" }}>
             {WEARABLES.slice(0, 4).map((o) => (
               <span key={o}>{o}</span>
             ))}
           </div>
-          <ActionButton action={connectAction.bind(null, "wearable", "mock")} className="btn btn-primary" toast="Wearable connected" pendingLabel="Connecting…">
-            Connect wearable
-          </ActionButton>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <ActionButton action={connectAction.bind(null, "wearable", "mock")} className="btn btn-primary" toast="Wearable connected" pendingLabel="Connecting…">
+              Connect demo wearable
+            </ActionButton>
+            <UploadFile action={importWearableAction} accept=".csv,.xml,text/csv,application/xml" label="Import export" toast="Importing wearable…" />
+            <a className="conn-sample" href="/samples/wearable.csv" download>
+              <Download size={13} /> sample CSV
+            </a>
+          </div>
         </div>
 
         <div className="feature">
@@ -95,12 +114,15 @@ export default async function ConnectionsPage() {
             <FlaskConical />
           </span>
           <h3>Labs</h3>
-          <p>Upload a JSON or CSV panel, or load a demo lab. PDF parsing arrives in Phase 2.</p>
+          <p>Upload a JSON, CSV, or PDF panel, or load a demo lab.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             <UploadLab />
             <ActionButton action={loadDemoLabAction} className="btn btn-light" toast="Loaded a demo panel">
               <Sparkles /> Load demo lab
             </ActionButton>
+            <a className="conn-sample" href="/samples/lab-panel.json" download>
+              <Download size={13} /> sample panel
+            </a>
           </div>
         </div>
       </div>

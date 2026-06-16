@@ -11,6 +11,8 @@ import { connections, observations, type Connection } from "../db/schema";
 import {
   getRecordsAdapter,
   getBiometricsAdapter,
+  parseFhirBundle,
+  parseWearableFile,
 } from "../adapters";
 import type {
   AdapterKind,
@@ -80,6 +82,25 @@ export function recordsToObs(records: RawRecord[]): StoredObs[] {
   }));
 }
 
+/**
+ * Public service verb (CONTEXT.md §12): normalize raw adapter output into the
+ * observations model and store it. Used by syncConnection and importFile.
+ */
+export async function normalizeAndStore(
+  userId: string,
+  kind: ConnectionKind,
+  rawItems: RawRecord[] | RawMetricPoint[],
+  connectionId?: string,
+): Promise<number> {
+  if (kind === "records") {
+    return storeObservations(userId, recordsToObs(rawItems as RawRecord[]), connectionId);
+  }
+  if (kind === "wearable") {
+    return storeObservations(userId, metricPointsToObs(rawItems as RawMetricPoint[]), connectionId);
+  }
+  return 0;
+}
+
 export async function connectSource(
   userId: string,
   kind: ConnectionKind,
@@ -111,25 +132,20 @@ export async function syncConnection(connectionId: string): Promise<number> {
   const [conn] = await db.select().from(connections).where(eq(connections.id, connectionId));
   if (!conn) throw new Error("Connection not found");
 
+  const descriptor = {
+    kind: conn.kind,
+    adapter: conn.adapter,
+    label: conn.label,
+    status: conn.status,
+    config: conn.config,
+  };
   let count = 0;
   if (conn.kind === "records") {
-    const records = await getRecordsAdapter(conn.adapter).fetch({
-      kind: conn.kind,
-      adapter: conn.adapter,
-      label: conn.label,
-      status: conn.status,
-      config: conn.config,
-    });
-    count = await storeObservations(conn.userId, recordsToObs(records), conn.id);
+    const records = await getRecordsAdapter(conn.adapter).fetch(descriptor);
+    count = await normalizeAndStore(conn.userId, "records", records, conn.id);
   } else if (conn.kind === "wearable") {
-    const points = await getBiometricsAdapter(conn.adapter).fetch({
-      kind: conn.kind,
-      adapter: conn.adapter,
-      label: conn.label,
-      status: conn.status,
-      config: conn.config,
-    });
-    count = await storeObservations(conn.userId, metricPointsToObs(points), conn.id);
+    const points = await getBiometricsAdapter(conn.adapter).fetch(descriptor);
+    count = await normalizeAndStore(conn.userId, "wearable", points, conn.id);
   }
 
   await db
@@ -143,4 +159,30 @@ export async function syncConnection(connectionId: string): Promise<number> {
 
 export async function listConnections(userId: string): Promise<Connection[]> {
   return db.select().from(connections).where(eq(connections.userId, userId));
+}
+
+/**
+ * One-shot file import for records (FHIR R4 bundle) and wearables (Apple Health
+ * export XML or date,metric,value CSV). Labs go through ingestLab. Creates a
+ * `file` connection, stores the normalized rows, then recomputes baselines.
+ */
+export async function importFile(
+  userId: string,
+  kind: "records" | "wearable",
+  file: { filename: string; content: string },
+): Promise<Connection> {
+  // Validate the file parses before persisting a connection.
+  const parsed =
+    kind === "records"
+      ? parseFhirBundle(file.content)
+      : parseWearableFile(file.filename, file.content);
+  if (parsed.length === 0) {
+    throw new Error(`No ${kind} data found in ${file.filename}. Check the file format.`);
+  }
+  const conn = await connectSource(userId, kind, "file", {
+    filename: file.filename,
+    content: file.content,
+  });
+  await logAction(userId, "ingestion.import_file", { kind, filename: file.filename });
+  return conn;
 }

@@ -1,0 +1,12 @@
+{
+  "panelName": "Comprehensive metabolic panel",
+  "collectedAt": "2026-06-14",
+  "markers": [
+    { "display": "Fasting glucose", "value": 101, "unit": "mg/dL", "refLow": 70, "refHigh": 99 },
+    { "display": "Hemoglobin A1c", "value": 5.7, "unit": "%", "refLow": 4.0, "refHigh": 5.6 },
+    { "display": "Total cholesterol", "value": 198, "unit": "mg/dL", "refLow": 125, "refHigh": 200 },
+    { "display": "LDL cholesterol", "value": 128, "unit": "mg/dL", "refLow": 0, "refHigh": 100 },
+    { "display": "HDL cholesterol", "value": 61, "unit": "mg/dL", "refLow": 40, "refHigh": 120 },
+    { "display": "Creatinine", "value": 0.9, "unit": "mg/dL", "refLow": 0.6, "refHigh": 1.3 }
+  ]
+}

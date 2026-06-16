@@ -18,7 +18,7 @@ export function UploadLab() {
         <input
           type="file"
           name="file"
-          accept=".json,.csv,application/json,text/csv"
+          accept=".json,.csv,.pdf,application/json,text/csv,application/pdf"
           style={{ display: "none" }}
           onChange={(e) => e.currentTarget.form?.requestSubmit()}
         />

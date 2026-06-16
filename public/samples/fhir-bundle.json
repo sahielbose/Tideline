@@ -1,0 +1,63 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "c-htn",
+        "clinicalStatus": { "coding": [{ "code": "active" }] },
+        "code": { "text": "Essential hypertension", "coding": [{ "code": "I10", "display": "Essential hypertension" }] },
+        "onsetDateTime": "2024-03-01"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "e-physical",
+        "class": { "code": "AMB", "display": "ambulatory" },
+        "type": [{ "text": "Annual wellness visit" }],
+        "serviceProvider": { "display": "Vanderbilt Health" },
+        "period": { "start": "2025-11-12" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o-bps",
+        "category": [{ "coding": [{ "code": "vital-signs" }] }],
+        "code": { "coding": [{ "code": "8480-6", "display": "Systolic blood pressure" }] },
+        "valueQuantity": { "value": 134, "unit": "mmHg" },
+        "effectiveDateTime": "2025-11-12T09:30:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o-bpd",
+        "category": [{ "coding": [{ "code": "vital-signs" }] }],
+        "code": { "coding": [{ "code": "8462-4", "display": "Diastolic blood pressure" }] },
+        "valueQuantity": { "value": 86, "unit": "mmHg" },
+        "effectiveDateTime": "2025-11-12T09:30:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o-a1c",
+        "code": { "coding": [{ "code": "4548-4", "display": "Hemoglobin A1c" }] },
+        "valueQuantity": { "value": 5.7, "unit": "%" },
+        "effectiveDateTime": "2025-11-12T09:30:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "m-lisinopril",
+        "status": "active",
+        "medicationCodeableConcept": { "text": "Lisinopril 10 mg" },
+        "effectiveDateTime": "2024-03-05"
+      }
+    }
+  ]
+}

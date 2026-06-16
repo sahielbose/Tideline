@@ -16,6 +16,8 @@ import {
   connectSource,
   listConnections,
   ingestLab,
+  ingestLabPdf,
+  importFile,
   addMedication,
   updateSettings,
   exportData,
@@ -124,10 +126,35 @@ export async function importLabAction(formData: FormData) {
   const userId = await uid();
   const file = formData.get("file") as File | null;
   if (!file) return;
-  const content = await file.text();
-  await ingestLab(userId, { kind: "file", filename: file.name, content });
+  if (file.name.toLowerCase().endsWith(".pdf")) {
+    const buf = Buffer.from(await file.arrayBuffer());
+    await ingestLabPdf(userId, file.name, buf);
+  } else {
+    await ingestLab(userId, { kind: "file", filename: file.name, content: await file.text() });
+  }
   revalidatePath("/app/labs");
   revalidatePath("/app");
+}
+
+export async function importRecordsAction(formData: FormData) {
+  const userId = await uid();
+  const file = formData.get("file") as File | null;
+  if (!file) return;
+  await importFile(userId, "records", { filename: file.name, content: await file.text() });
+  await runMonitoringSweep(userId);
+  revalidatePath("/app");
+  revalidatePath("/app/connections");
+  revalidatePath("/app/timeline");
+}
+
+export async function importWearableAction(formData: FormData) {
+  const userId = await uid();
+  const file = formData.get("file") as File | null;
+  if (!file) return;
+  await importFile(userId, "wearable", { filename: file.name, content: await file.text() });
+  await runMonitoringSweep(userId);
+  revalidatePath("/app");
+  revalidatePath("/app/connections");
 }
 
 // ---- medications ----------------------------------------------------------

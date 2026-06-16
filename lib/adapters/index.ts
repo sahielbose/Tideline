@@ -17,7 +17,7 @@ import {
   generateRecords,
   generateLabPanels,
 } from "./mock";
-import { parseLabFile } from "./file";
+import { parseLabFile, parseFhirBundle, parseWearableFile } from "./file";
 
 export interface ConnectDescriptor {
   kind: ConnectionKind;
@@ -90,21 +90,57 @@ class FileLabsAdapter implements LabsAdapter {
   }
 }
 
-// Phase 2 placeholders: file/sandbox records + wearables import. They throw a
-// clear, actionable error rather than silently doing nothing.
-class NotImplementedRecords implements RecordsAdapter {
-  constructor(private readonly which: string) {}
+// ---- file-import implementations (records + wearables) -------------------
+// The uploaded content is captured in the connection config at connect-time so
+// a later re-sync re-parses the same source deterministically.
+class FileRecordsAdapter implements RecordsAdapter {
+  async connect(_userId: string, cfg: Record<string, unknown> = {}): Promise<ConnectDescriptor> {
+    const filename = String(cfg.filename ?? "records.json");
+    return {
+      kind: "records",
+      adapter: "file",
+      label: `Records — ${filename}`,
+      status: "connected",
+      config: { filename, content: String(cfg.content ?? "") },
+    };
+  }
+  async fetch(conn: ConnectDescriptor): Promise<RawRecord[]> {
+    const content = String((conn.config as Record<string, unknown>).content ?? "");
+    return content ? parseFhirBundle(content) : [];
+  }
+}
+
+class FileBiometricsAdapter implements BiometricsAdapter {
+  async connect(_userId: string, cfg: Record<string, unknown> = {}): Promise<ConnectDescriptor> {
+    const filename = String(cfg.filename ?? "wearable.csv");
+    return {
+      kind: "wearable",
+      adapter: "file",
+      label: `Wearable — ${filename}`,
+      status: "connected",
+      config: { filename, content: String(cfg.content ?? "") },
+    };
+  }
+  async fetch(conn: ConnectDescriptor): Promise<RawMetricPoint[]> {
+    const cfg = conn.config as Record<string, unknown>;
+    const content = String(cfg.content ?? "");
+    return content ? parseWearableFile(String(cfg.filename ?? "wearable.csv"), content) : [];
+  }
+}
+
+// Sandbox adapters are key-gated (Phase 2+). Without keys they fail loudly
+// instead of silently returning nothing.
+class SandboxRecordsAdapter implements RecordsAdapter {
   async connect(): Promise<ConnectDescriptor> {
-    throw new Error(`${this.which} records adapter is not configured (Phase 2). Use the mock adapter or load demo data.`);
+    throw new Error("Records sandbox is not configured. Set RECORDS_SANDBOX_KEY, or use the mock adapter / FHIR file import.");
   }
   async fetch(): Promise<RawRecord[]> {
     return [];
   }
 }
-class NotImplementedBiometrics implements BiometricsAdapter {
-  constructor(private readonly which: string) {}
+class SandboxBiometricsAdapter implements BiometricsAdapter {
   async connect(): Promise<ConnectDescriptor> {
-    throw new Error(`${this.which} wearable adapter is not configured (Phase 2). Use the mock adapter or load demo data.`);
+    throw new Error("Wearables sandbox is not configured. Set WEARABLES_SANDBOX_KEY, or use the mock adapter / file import.");
   }
   async fetch(): Promise<RawMetricPoint[]> {
     return [];
@@ -117,9 +153,9 @@ export function getRecordsAdapter(adapter: AdapterKind = config.dataAdapterDefau
     case "mock":
       return new MockRecordsAdapter();
     case "file":
-      return new NotImplementedRecords("file");
+      return new FileRecordsAdapter();
     case "sandbox":
-      return new NotImplementedRecords("sandbox");
+      return new SandboxRecordsAdapter();
   }
 }
 
@@ -128,9 +164,9 @@ export function getBiometricsAdapter(adapter: AdapterKind = config.dataAdapterDe
     case "mock":
       return new MockBiometricsAdapter();
     case "file":
-      return new NotImplementedBiometrics("file");
+      return new FileBiometricsAdapter();
     case "sandbox":
-      return new NotImplementedBiometrics("sandbox");
+      return new SandboxBiometricsAdapter();
   }
 }
 
@@ -146,3 +182,4 @@ export function getLabsAdapter(adapter: AdapterKind = config.dataAdapterDefault)
 }
 
 export { buildBiometricPoints, generateRecords, generateLabPanels } from "./mock";
+export { parseFhirBundle, parseWearableFile, parseLabFile } from "./file";
