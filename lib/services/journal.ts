@@ -7,6 +7,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { journalEntries, type JournalEntry } from "../db/schema";
 import { logAction } from "./audit";
+import { toLocalDateString } from "../utils";
 
 export interface JournalInput {
   mood?: number;
@@ -16,7 +17,7 @@ export interface JournalInput {
 
 /** Today's local date as a 'YYYY-MM-DD' string (date column format). */
 export function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateString();
 }
 
 /**

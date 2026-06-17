@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Local calendar date as 'YYYY-MM-DD' (NOT UTC — avoids off-by-one for users behind UTC). */
+export function toLocalDateString(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Human "x hours ago" style relative time, deterministic given a reference. */
 export function timeAgo(date: Date | string, now: Date = new Date()): string {
   const d = typeof date === "string" ? new Date(date) : date;

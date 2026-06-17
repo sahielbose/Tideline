@@ -9,6 +9,7 @@ import { habitTags } from "../db/schema";
 import { getSeriesByCodes } from "./metrics";
 import { METRICS } from "../metrics";
 import { logAction } from "./audit";
+import { toLocalDateString } from "../utils";
 
 export const HABIT_TAGS = ["Alcohol", "Late meal", "Late caffeine", "Poor sleep", "Workout", "High stress", "Travel"];
 const CORR_METRICS = ["rhr", "hrv", "sleep"];
@@ -66,11 +67,11 @@ export function computeHabitCorrelations(
 }
 
 function dayKey(iso: string): string {
-  return iso.slice(0, 10);
+  return toLocalDateString(new Date(iso));
 }
 
 export async function listTodayTags(userId: string): Promise<string[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDateString();
   const rows = await db
     .select({ tag: habitTags.tag })
     .from(habitTags)
@@ -80,7 +81,7 @@ export async function listTodayTags(userId: string): Promise<string[]> {
 
 /** Toggle a tag for a given day (default today). */
 export async function toggleHabit(userId: string, tag: string, day?: string): Promise<boolean> {
-  const d = day ?? new Date().toISOString().slice(0, 10);
+  const d = day ?? toLocalDateString();
   const [existing] = await db
     .select()
     .from(habitTags)
@@ -95,7 +96,7 @@ export async function toggleHabit(userId: string, tag: string, day?: string): Pr
 }
 
 export async function getHabitCorrelations(userId: string): Promise<HabitCorrelation[]> {
-  const since = new Date(Date.now() - 75 * 864e5).toISOString().slice(0, 10);
+  const since = toLocalDateString(new Date(Date.now() - 75 * 864e5));
   const tagRows = await db
     .select({ tag: habitTags.tag, day: habitTags.day })
     .from(habitTags)

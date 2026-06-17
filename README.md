@@ -56,6 +56,11 @@ explanation → a path to action → responsible safety behavior.
 - **Longitudinal biomarkers** trended across draws, a trackable **care plan**
   (tasks that auto-complete when a metric returns to baseline), **habit tags**
   with metric-impact correlation, and a printable **health report** (PDF).
+- **More surfaces**: structured **symptom intake** → simulated review, a durable
+  care-team **inbox**, multi-week **programs**, **trends** (rolling aggregates),
+  a symptom **journal**, medication **adherence** + mock refill/appointment,
+  a structured health **profile**, a **longevity** panel (illustrative CV-risk,
+  percentiles, health-age methodology), and saved **report snapshots**.
 - **File imports**: FHIR R4 bundles, Apple Health exports / CSV, and lab PDFs.
 - **Retrieval-grounded, tool-calling chat**: the agent fetches your data and
   cites a curated reference corpus — keyword search by default, or **pgvector**

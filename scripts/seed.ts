@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "../lib/db/client";
 import { users, referenceRanges, habitTags } from "../lib/db/schema";
 import { hashPassword } from "../lib/password";
+import { toLocalDateString } from "../lib/utils";
 import { METRICS } from "../lib/metrics";
 import { MOCK_MEDICATIONS } from "../lib/adapters/mock";
 import {
@@ -79,7 +80,7 @@ export async function seed() {
 
   // Habit tags: a recent poor-sleep stretch (tracks with the RHR/HRV drift)
   // and older workout days, so correlations have signal.
-  const day = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  const day = (d: number) => toLocalDateString(new Date(Date.now() - d * 864e5));
   const tagRows: { userId: string; tag: string; day: string }[] = [];
   for (const d of [0, 1, 3, 4, 6, 8, 10, 12, 13]) tagRows.push({ userId: user.id, tag: "Poor sleep", day: day(d) });
   for (const d of [2, 5, 9]) tagRows.push({ userId: user.id, tag: "Alcohol", day: day(d) });
