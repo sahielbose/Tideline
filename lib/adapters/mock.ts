@@ -49,6 +49,8 @@ const SPECS: Record<string, MetricSpec> = {
   weight: { days: 90, every: 2, base: 176, noise: 0.5, drift: { days: 90, to: 178 }, anchorLast: 178 },
   glucose: { days: 90, every: 3, base: 90, noise: 1.2, drift: { days: 45, to: 96 }, anchorLast: 96 },
   temperature: { days: 45, every: 2, base: 98.2, noise: 0.3 },
+  vo2max: { days: 120, every: 7, base: 44, noise: 0.5, anchorLast: 45 },
+  body_fat: { days: 120, every: 7, base: 22, noise: 0.3, anchorLast: 21.5 },
 };
 
 function round(v: number, decimals: number): number {

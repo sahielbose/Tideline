@@ -22,6 +22,13 @@
       "when": 1781653485018,
       "tag": "0002_care_plan_habits",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781683505431,
+      "tag": "0003_remaining_features",
+      "breakpoints": true
     }
   ]
 }

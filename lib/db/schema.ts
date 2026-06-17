@@ -39,6 +39,8 @@ export const users = pgTable("users", {
   unitsPref: text("units_pref").notNull().default("imperial"),
   notifyOptIn: boolean("notify_opt_in").notNull().default(false),
   notifyEmail: text("notify_email"),
+  // Structured health profile: conditions, allergies, familyHistory, goals, height, etc.
+  profile: jsonb("profile").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -274,6 +276,67 @@ export const habitTags = pgTable("habit_tags", {
 });
 
 // ---------------------------------------------------------------------------
+// thread_messages — durable care-team inbox thread on a review flag
+// ---------------------------------------------------------------------------
+export const threadMessages = pgTable("thread_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reviewFlagId: uuid("review_flag_id").references(() => reviewFlags.id, { onDelete: "cascade" }),
+  role: text("role").$type<"user" | "reviewer">().notNull(),
+  body: text("body").notNull(),
+  read: boolean("read").notNull().default(false),
+  simulated: boolean("simulated").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// program_enrollments — multi-week protocol enrollment + progress
+// ---------------------------------------------------------------------------
+export const programEnrollments = pgTable("program_enrollments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  programKey: text("program_key").notNull(),
+  status: text("status").$type<"active" | "completed">().notNull().default("active"),
+  completedSteps: jsonb("completed_steps").$type<number[]>().notNull().default([]),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
+// ---------------------------------------------------------------------------
+// journal_entries — symptom / how-you-feel check-ins
+// ---------------------------------------------------------------------------
+export const journalEntries = pgTable("journal_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  day: date("day").notNull(),
+  mood: integer("mood"),
+  symptoms: text("symptoms"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// med_logs — medication adherence logging
+// ---------------------------------------------------------------------------
+export const medLogs = pgTable("med_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  medicationId: uuid("medication_id").notNull().references(() => medications.id, { onDelete: "cascade" }),
+  takenAt: timestamp("taken_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// report_snapshots — saved health-report snapshots
+// ---------------------------------------------------------------------------
+export const reportSnapshots = pgTable("report_snapshots", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // audit_log — append-only record of confirm-gated actions
 // ---------------------------------------------------------------------------
 export const auditLog = pgTable("audit_log", {
@@ -302,3 +365,8 @@ export type Notification = typeof notifications.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
 export type CarePlanTask = typeof carePlanTasks.$inferSelect;
 export type HabitTag = typeof habitTags.$inferSelect;
+export type ThreadMessage = typeof threadMessages.$inferSelect;
+export type ProgramEnrollment = typeof programEnrollments.$inferSelect;
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type MedLog = typeof medLogs.$inferSelect;
+export type ReportSnapshot = typeof reportSnapshots.$inferSelect;
