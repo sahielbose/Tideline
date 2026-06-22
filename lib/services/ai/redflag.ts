@@ -5,7 +5,7 @@
  * is configured its verdict is OR-merged so the keyword floor can never be lost.
  */
 import type { RedFlagVerdict, RedFlagCategory } from "../../types";
-import { hasLLM } from "../../config";
+import { hasLLM } from "../../settings";
 import { getProvider } from "./provider";
 import { CLASSIFIER_SYSTEM } from "./prompts";
 
@@ -109,7 +109,7 @@ async function classifyLLM(text: string): Promise<RedFlagVerdict | null> {
 
 export async function classifyRedFlags(text: string): Promise<RedFlagVerdict> {
   const rule = classifyRule(text);
-  if (!hasLLM) return rule;
+  if (!(await hasLLM())) return rule;
   const llm = await classifyLLM(text);
   if (!llm) return rule;
   // OR-merge: never lose the keyword recall floor.

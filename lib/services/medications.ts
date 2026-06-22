@@ -5,7 +5,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { medications, type Medication } from "../db/schema";
-import { hasLLM } from "../config";
+import { hasLLM } from "../settings";
 import { getProvider } from "./ai/provider";
 import { logAction } from "./audit";
 
@@ -51,7 +51,7 @@ export async function updateMedication(
 export async function medicationInfo(name: string): Promise<string> {
   const safety =
     "This is general information, not medical advice. Always follow the directions on your label and from the clinician who prescribed it, and ask a pharmacist about interactions with your other medications.";
-  if (!hasLLM) {
+  if (!(await hasLLM())) {
     return `**${name}** — general information.\n\nMedications can interact with other drugs, supplements, food, and existing conditions. ${safety}`;
   }
   try {

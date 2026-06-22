@@ -187,6 +187,12 @@ ingestion webhook is disabled unless `INGEST_WEBHOOK_SECRET` is set.
 Only `DATABASE_URL` is required. Everything else is optional — leave it blank to
 use the mock adapters, the rule-based LLM, and console "email".
 
+> **No env edits needed for keys.** You can also add your Anthropic (and Resend)
+> API key at runtime from **Settings → Integrations** in the app. Keys entered
+> there are encrypted at rest, override the env defaults, take effect on the next
+> request (no restart), and include a one-click "Test connection". The env vars
+> below remain a valid alternative for headless / CI deployments.
+
 | Variable | Required | Default / effect |
 |---|---|---|
 | `DATABASE_URL` | yes | Postgres connection string |

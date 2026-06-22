@@ -6,7 +6,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { notifications, users } from "../db/schema";
-import { config, hasEmail } from "../config";
+import { getSettings } from "../settings";
 import { logAction } from "./audit";
 
 export interface NotifyInput {
@@ -18,13 +18,14 @@ export interface NotifyInput {
 }
 
 async function deliverEmail(to: string, subject: string, body: string) {
-  if (!hasEmail) {
+  const { email } = await getSettings();
+  if (!email.enabled) {
     console.log(`[notifications] (email disabled) would send to ${to}: ${subject}`);
     return "logged";
   }
   const { Resend } = await import("resend");
-  const resend = new Resend(config.email.apiKey);
-  await resend.emails.send({ from: config.email.from, to, subject, text: body });
+  const resend = new Resend(email.apiKey);
+  await resend.emails.send({ from: email.from, to, subject, text: body });
   return "sent";
 }
 

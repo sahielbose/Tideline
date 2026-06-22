@@ -3,7 +3,7 @@
  * flags, hedged trend, and a non-prescriptive next step. The rule-based path
  * never invents markers — it only describes what was passed in.
  */
-import { hasLLM } from "../../config";
+import { hasLLM } from "../../settings";
 import { getProvider } from "./provider";
 import { LAB_SYSTEM, NOT_A_PROVIDER } from "./prompts";
 import { optimalFor, markerStatus } from "../../lab-reference";
@@ -98,7 +98,7 @@ export async function explainLab(
   panel: LabPanelInput,
   priors?: Record<string, number>,
 ): Promise<string> {
-  if (!hasLLM) return ruleExplain(panel, priors);
+  if (!(await hasLLM())) return ruleExplain(panel, priors);
   try {
     const serialized = panel.markers
       .map(

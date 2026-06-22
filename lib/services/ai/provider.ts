@@ -2,8 +2,13 @@
  * The LLM provider seam. All model calls go through this so the provider/model
  * is swappable (CONTEXT.md §9). With no API key the app uses rule-based mock
  * implementations in the sibling modules and never instantiates a real client.
+ *
+ * The key and model names are read from runtime settings on every call, so a
+ * key added from the Settings UI takes effect immediately (no restart). Callers
+ * gate real calls behind `await hasLLM()`; if the LLM path is somehow reached
+ * without a key, the provider throws a clear, actionable error.
  */
-import { config, hasLLM } from "../../config";
+import { getSettings } from "../../settings";
 
 export interface LLMMessage {
   role: "user" | "assistant";
@@ -39,24 +44,34 @@ export interface LLMProvider {
   completeWithTools(opts: ToolCompleteOptions): Promise<string>;
 }
 
+const NO_KEY =
+  "LLM provider not configured. Add an Anthropic API key in Settings → Integrations (or set LLM_API_KEY).";
+
 class AnthropicProvider implements LLMProvider {
   readonly name = "anthropic";
-  // Lazily imported so the SDK is never loaded in the keyless mock path.
-  private clientPromise: Promise<import("@anthropic-ai/sdk").default> | null = null;
+  // Cache the SDK client per API key so a key rotation (e.g. via the Settings
+  // UI) transparently rebuilds the client; the SDK is imported lazily so it is
+  // never loaded on the keyless mock path.
+  private cached: { key: string; client: import("@anthropic-ai/sdk").default } | null = null;
 
   private async client() {
-    if (!this.clientPromise) {
-      this.clientPromise = import("@anthropic-ai/sdk").then(
-        (m) => new m.default({ apiKey: config.llm.apiKey }),
-      );
-    }
-    return this.clientPromise;
+    const { llm } = await getSettings();
+    if (!llm.apiKey) throw new Error(NO_KEY);
+    if (this.cached?.key === llm.apiKey) return this.cached.client;
+    const mod = await import("@anthropic-ai/sdk");
+    const client = new mod.default({ apiKey: llm.apiKey });
+    this.cached = { key: llm.apiKey, client };
+    return client;
+  }
+
+  private async agentModel(override?: string): Promise<string> {
+    return override ?? (await getSettings()).llm.modelAgent;
   }
 
   async complete(opts: CompleteOptions): Promise<string> {
     const client = await this.client();
     const resp = await client.messages.create({
-      model: opts.model ?? config.llm.modelAgent,
+      model: await this.agentModel(opts.model),
       max_tokens: opts.maxTokens ?? 1024,
       temperature: opts.temperature ?? 0.4,
       system: opts.system,
@@ -71,7 +86,7 @@ class AnthropicProvider implements LLMProvider {
   async *stream(opts: CompleteOptions): AsyncIterable<string> {
     const client = await this.client();
     const stream = client.messages.stream({
-      model: opts.model ?? config.llm.modelAgent,
+      model: await this.agentModel(opts.model),
       max_tokens: opts.maxTokens ?? 1024,
       temperature: opts.temperature ?? 0.4,
       system: opts.system,
@@ -89,12 +104,13 @@ class AnthropicProvider implements LLMProvider {
 
   async completeWithTools(opts: ToolCompleteOptions): Promise<string> {
     const client = await this.client();
+    const model = await this.agentModel(opts.model);
     const maxIters = opts.maxIters ?? 4;
     const messages: any[] = opts.messages.map((m) => ({ role: m.role, content: m.content }));
     let lastText = "";
     for (let i = 0; i < maxIters; i++) {
       const resp = await client.messages.create({
-        model: opts.model ?? config.llm.modelAgent,
+        model,
         max_tokens: opts.maxTokens ?? 1024,
         temperature: opts.temperature ?? 0.4,
         system: opts.system,
@@ -129,23 +145,9 @@ class AnthropicProvider implements LLMProvider {
   }
 }
 
-/** A guard provider used only if something calls the LLM in keyless mode. */
-class UnavailableProvider implements LLMProvider {
-  readonly name = "mock";
-  async complete(): Promise<string> {
-    throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
-  }
-  async *stream(): AsyncIterable<string> {
-    throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
-  }
-  async completeWithTools(): Promise<string> {
-    throw new Error("LLM provider not configured (no LLM_API_KEY). Use the rule-based path.");
-  }
-}
-
-let cached: LLMProvider | null = null;
+// A single stateless wrapper is reused; it resolves the live key/model per call.
+let provider: LLMProvider | null = null;
 export function getProvider(): LLMProvider {
-  if (cached) return cached;
-  cached = hasLLM ? new AnthropicProvider() : new UnavailableProvider();
-  return cached;
+  if (!provider) provider = new AnthropicProvider();
+  return provider;
 }

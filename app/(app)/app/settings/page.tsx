@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, BellOff, ShieldCheck, LogOut, Info } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
+import { getIntegrationStatus } from "@/lib/settings";
 import {
   setNotificationOptInAction,
   deleteDataAction,
@@ -9,19 +10,26 @@ import {
 import { ActionButton } from "@/components/action-button";
 import { ConfirmAction } from "@/components/confirm-action";
 import { ExportButton } from "@/components/account/export-button";
+import { IntegrationsSettings } from "./integrations";
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
   const optedIn = user!.notifyOptIn;
+  const integrations = await getIntegrationStatus();
 
   return (
     <div className="wrap" style={{ maxWidth: 760, marginBottom: 60 }}>
       <div className="page-head">
         <div>
           <h1 className="serif h1">Settings</h1>
-          <p className="sub">Profile, notifications, and your data.</p>
+          <p className="sub">Integrations, profile, notifications, and your data.</p>
         </div>
       </div>
+
+      <h2 className="serif" style={{ fontSize: 19, margin: "4px 0 14px" }}>Integrations</h2>
+      <IntegrationsSettings status={integrations} />
+
+      <h2 className="serif" style={{ fontSize: 19, margin: "28px 0 14px" }}>Account</h2>
 
       <div className="box" style={{ marginBottom: 20 }}>
         <div className="bhead">Profile</div>

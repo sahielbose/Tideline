@@ -12,7 +12,7 @@ import type {
   TriageBand,
   RedFlagVerdict,
 } from "../../types";
-import { hasLLM } from "../../config";
+import { hasLLM } from "../../settings";
 import { getProvider, type ToolDef, type ToolExecutor } from "./provider";
 import { classifyRule } from "./redflag";
 import { retrieve } from "../reference";
@@ -214,7 +214,7 @@ export async function respond(
 ): Promise<AgentReply> {
   const text = lastUserMessage(history);
   const verdict = redFlag ?? classifyRule(text);
-  if (!hasLLM) {
+  if (!(await hasLLM())) {
     const reply = ruleReply(text, ctx, verdict);
     // Ground non-emergency replies with a curated reference note (keyless retrieval).
     if (!verdict.emergency && !verdict.crisis) {

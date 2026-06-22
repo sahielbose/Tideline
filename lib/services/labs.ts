@@ -11,7 +11,7 @@ import { extractPdfText, heuristicLabFromText } from "../adapters/pdf";
 import { explainLab as aiExplainLab, flagFor } from "./ai";
 import { getProvider } from "./ai/provider";
 import { logAction } from "./audit";
-import { hasLLM } from "../config";
+import { hasLLM } from "../settings";
 import { optimalFor, markerStatus, type MarkerStatus } from "../lab-reference";
 import type { AdapterKind, RawLabPanel } from "../types";
 
@@ -101,6 +101,23 @@ export async function ingestLab(userId: string, input: LabIngestInput): Promise<
   return created;
 }
 
+/** Add a lab panel the user typed in by hand. Markers without a finite value
+ * are dropped by storeLabPanels; a panel with no valid markers is rejected. */
+export async function addManualLabPanel(userId: string, panel: RawLabPanel): Promise<Lab[]> {
+  const valid = panel.markers
+    .filter((m) => m.display.trim() && Number.isFinite(m.value))
+    .map((m) => ({ ...m, code: m.code?.trim() || slugify(m.display) }));
+  if (!valid.length) {
+    throw new Error("Add at least one marker with a numeric value.");
+  }
+  const created = await storeLabPanels(userId, [{ ...panel, markers: valid }], "file");
+  await logAction(userId, "lab.manual_add", {
+    count: created.length,
+    markers: valid.length,
+  });
+  return created;
+}
+
 /** LLM structuring of extracted PDF text into a panel; throws to let callers fall back. */
 async function structureLabFromText(filename: string, text: string): Promise<RawLabPanel> {
   const out = await getProvider().complete({
@@ -130,7 +147,7 @@ async function structureLabFromText(filename: string, text: string): Promise<Raw
 export async function ingestLabPdf(userId: string, filename: string, buf: Buffer): Promise<Lab[]> {
   const text = await extractPdfText(buf);
   let panel: RawLabPanel;
-  if (hasLLM) {
+  if (await hasLLM()) {
     try {
       panel = await structureLabFromText(filename, text);
       if (!panel.markers.length) panel = heuristicLabFromText(filename, text);

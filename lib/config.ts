@@ -57,5 +57,7 @@ export const config = {
   webhookSecret: env("INGEST_WEBHOOK_SECRET"),
 } as const;
 
-export const hasLLM = config.llm.provider === "anthropic";
-export const hasEmail = config.email.enabled;
+// NOTE: `config` holds env-time DEFAULTS only. Whether the LLM / email are
+// actually live is decided at request time by lib/settings.ts (`hasLLM()`,
+// `hasEmail()`), which merges runtime overrides set from the Settings UI over
+// these defaults. Import those — not the values here — to branch mock-vs-real.

@@ -337,6 +337,18 @@ export const reportSnapshots = pgTable("report_snapshots", {
 });
 
 // ---------------------------------------------------------------------------
+// app_settings — instance-wide runtime configuration (API keys, model choice).
+// A simple encrypted key/value store so an operator can wire real providers
+// from the Settings UI without editing env or restarting (CONTEXT.md §17).
+// Secret values are encrypted at rest; non-secret values are stored as-is.
+// ---------------------------------------------------------------------------
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // audit_log — append-only record of confirm-gated actions
 // ---------------------------------------------------------------------------
 export const auditLog = pgTable("audit_log", {
@@ -370,3 +382,4 @@ export type ProgramEnrollment = typeof programEnrollments.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type MedLog = typeof medLogs.$inferSelect;
 export type ReportSnapshot = typeof reportSnapshots.$inferSelect;
+export type AppSetting = typeof appSettings.$inferSelect;

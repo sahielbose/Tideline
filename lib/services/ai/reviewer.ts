@@ -3,7 +3,7 @@
  * note for a review_flag. ALWAYS clearly labeled as simulated — never presented
  * as a real clinician (safety rule §10.8).
  */
-import { hasLLM } from "../../config";
+import { hasLLM } from "../../settings";
 import { getProvider } from "./provider";
 import { REVIEWER_SYSTEM } from "./prompts";
 
@@ -40,7 +40,7 @@ function ruleNote(ctx: ReviewContext): string {
 }
 
 export async function draftReviewerNote(ctx: ReviewContext): Promise<string> {
-  if (!hasLLM) return ruleNote(ctx);
+  if (!(await hasLLM())) return ruleNote(ctx);
   try {
     const out = await getProvider().complete({
       system: REVIEWER_SYSTEM,

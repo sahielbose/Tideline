@@ -5,7 +5,7 @@
  */
 import type { DriftSignal, Severity } from "../../types";
 import { METRICS } from "../../metrics";
-import { hasLLM } from "../../config";
+import { hasLLM } from "../../settings";
 import { getProvider } from "./provider";
 import { SUMMARIZER_SYSTEM } from "./prompts";
 
@@ -64,7 +64,7 @@ export function explainSignalRule(signal: DriftSignal): ExplainedSignal {
 }
 
 export async function explainSignal(signal: DriftSignal): Promise<ExplainedSignal> {
-  if (!hasLLM) return explainSignalRule(signal);
+  if (!(await hasLLM())) return explainSignalRule(signal);
   try {
     const out = await getProvider().complete({
       system: SUMMARIZER_SYSTEM,
