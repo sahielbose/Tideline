@@ -18,6 +18,9 @@ import {
   ingestLab,
   ingestLabPdf,
   importFile,
+  logManualReadings,
+  addManualLabPanel,
+  resetHealthData,
   addMedication,
   medicationInfo,
   addCarePlanTask,
@@ -163,6 +166,91 @@ export async function importWearableAction(formData: FormData) {
   await runMonitoringSweep(userId);
   revalidatePath("/app");
   revalidatePath("/app/connections");
+}
+
+// ---- manual entry (real data, typed by the user) --------------------------
+function readingDateISO(raw: string): string {
+  const s = raw.trim();
+  if (!s) return new Date().toISOString();
+  // A date-only value (YYYY-MM-DD) must be read in LOCAL time, not UTC, or it
+  // shifts back a day in negative-offset zones. datetime-local strings already
+  // parse as local, so only bare dates need the explicit midnight suffix.
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00` : s;
+  const d = new Date(normalized);
+  return (Number.isNaN(d.getTime()) ? new Date() : d).toISOString();
+}
+
+/** Log one metric reading (or a blood-pressure pair) by hand. */
+export async function logReadingAction(formData: FormData) {
+  const userId = await uid();
+  const metric = String(formData.get("metric") ?? "").trim();
+  const at = readingDateISO(String(formData.get("at") ?? ""));
+
+  const readings: { code: string; value: number; effectiveAt: string }[] = [];
+  if (metric === "bp") {
+    const sys = Number(formData.get("value"));
+    const dia = Number(formData.get("value2"));
+    if (Number.isFinite(sys)) readings.push({ code: "bp_systolic", value: sys, effectiveAt: at });
+    if (Number.isFinite(dia)) readings.push({ code: "bp_diastolic", value: dia, effectiveAt: at });
+  } else if (metric) {
+    const value = Number(formData.get("value"));
+    if (Number.isFinite(value)) readings.push({ code: metric, value, effectiveAt: at });
+  }
+
+  const n = await logManualReadings(userId, readings);
+  if (n > 0) await runMonitoringSweep(userId);
+  revalidatePath("/app");
+  revalidatePath("/app/log");
+  revalidatePath("/app/trends");
+  revalidatePath("/app/timeline");
+  revalidatePath("/app/biometrics");
+}
+
+/** Add a lab panel typed in by hand (panel name, date, marker rows). */
+export async function addManualLabAction(formData: FormData) {
+  const userId = await uid();
+  const panelName = String(formData.get("panelName") ?? "").trim() || "Lab panel";
+  const collectedAt = readingDateISO(String(formData.get("collectedAt") ?? ""));
+
+  const names = formData.getAll("mname").map(String);
+  const values = formData.getAll("mvalue").map(String);
+  const units = formData.getAll("munit").map(String);
+  const lows = formData.getAll("mreflow").map(String);
+  const highs = formData.getAll("mrefhigh").map(String);
+
+  const num = (s: string | undefined) =>
+    s != null && s.trim() !== "" && Number.isFinite(Number(s)) ? Number(s) : undefined;
+
+  const markers = names
+    .map((name, i) => ({
+      code: "",
+      display: name.trim(),
+      value: Number(values[i]),
+      unit: (units[i] ?? "").trim(),
+      refLow: num(lows[i]),
+      refHigh: num(highs[i]),
+    }))
+    .filter((m) => m.display && Number.isFinite(m.value));
+
+  if (!markers.length) return;
+  await addManualLabPanel(userId, { panelName, collectedAt, markers });
+  revalidatePath("/app/labs");
+  revalidatePath("/app");
+  revalidatePath("/app/log");
+}
+
+/** Clear demo/mock health data so the account starts from a clean slate. */
+export async function resetHealthDataAction() {
+  const userId = await uid();
+  await resetHealthData(userId);
+  revalidatePath("/app");
+  revalidatePath("/app/log");
+  revalidatePath("/app/trends");
+  revalidatePath("/app/timeline");
+  revalidatePath("/app/labs");
+  revalidatePath("/app/connections");
+  revalidatePath("/app/insights");
+  revalidatePath("/app/reviews");
 }
 
 // ---- medications ----------------------------------------------------------

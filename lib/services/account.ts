@@ -88,3 +88,20 @@ export async function deleteData(userId: string): Promise<void> {
   await logAction(userId, "account.delete", {});
   await db.delete(users).where(eq(users.id, userId));
 }
+
+/**
+ * Confirm-gated "start fresh": wipe the health timeline (observations, labs,
+ * connections, drift, insights, baselines, review flags) but keep the account,
+ * profile, medications, journal, habits, and chats. Use to clear out demo/mock
+ * data before entering your own. Lab markers cascade with their labs.
+ */
+export async function resetHealthData(userId: string): Promise<void> {
+  await db.delete(observations).where(eq(observations.userId, userId));
+  await db.delete(labs).where(eq(labs.userId, userId));
+  await db.delete(connections).where(eq(connections.userId, userId));
+  await db.delete(driftSignals).where(eq(driftSignals.userId, userId));
+  await db.delete(insights).where(eq(insights.userId, userId));
+  await db.delete(metricBaselines).where(eq(metricBaselines.userId, userId));
+  await db.delete(reviewFlags).where(eq(reviewFlags.userId, userId));
+  await logAction(userId, "account.reset_health_data", {});
+}

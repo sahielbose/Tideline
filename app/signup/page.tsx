@@ -15,7 +15,7 @@ export default function SignupPage() {
           Create your account
         </h1>
         <p className="muted center" style={{ marginBottom: 22, fontSize: 14.5 }}>
-          Then connect your data — or load the demo dataset.
+          Then add your readings, labs, and records to start monitoring.
         </p>
         <SignupForm />
         <p className="auth-legal">

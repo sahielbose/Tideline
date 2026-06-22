@@ -5,7 +5,7 @@
  * for durability, but they also work inline so the app is usable without the
  * jobs runner.
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { connections, observations, type Connection } from "../db/schema";
 import {
@@ -197,4 +197,72 @@ export async function importFile(
   await recomputeBaselines(userId);
   await logAction(userId, "ingestion.import_file", { kind, filename: file.filename, count: parsed.length });
   return conn;
+}
+
+// ---------------------------------------------------------------------------
+// Manual entry — the user types real readings in directly (no adapter, no mock)
+// ---------------------------------------------------------------------------
+const MANUAL_LABEL = "Manual entry";
+
+/** Reuse (or create) the single connection that owns hand-entered readings, so
+ * manual data has clear provenance on the Connections page. */
+async function ensureManualConnection(userId: string): Promise<string> {
+  const [existing] = await db
+    .select()
+    .from(connections)
+    .where(and(eq(connections.userId, userId), eq(connections.label, MANUAL_LABEL)));
+  if (existing) return existing.id;
+  const [conn] = await db
+    .insert(connections)
+    .values({
+      userId,
+      kind: "wearable",
+      adapter: "file",
+      status: "connected",
+      label: MANUAL_LABEL,
+      config: { manual: true },
+      lastSyncedAt: new Date(),
+    })
+    .returning();
+  return conn.id;
+}
+
+export interface ManualReading {
+  code: string;
+  value: number;
+  effectiveAt: string; // ISO
+}
+
+/**
+ * Store hand-entered metric readings on the observations spine, recompute the
+ * affected baselines, and return how many were saved. Unknown metric codes are
+ * skipped. Callers run the monitoring sweep afterwards.
+ */
+export async function logManualReadings(
+  userId: string,
+  readings: ManualReading[],
+): Promise<number> {
+  const valid = readings.filter(
+    (r) => METRICS[r.code] && Number.isFinite(r.value),
+  );
+  if (!valid.length) return 0;
+  const connId = await ensureManualConnection(userId);
+  const rows: StoredObs[] = valid.map((r) => {
+    const def = METRICS[r.code];
+    return {
+      category: def.category,
+      code: r.code,
+      display: def.display,
+      valueNum: r.value,
+      unit: def.unit,
+      effectiveAt: new Date(r.effectiveAt).toISOString(),
+    };
+  });
+  const n = await storeObservations(userId, rows, connId);
+  await recomputeBaselines(userId);
+  await logAction(userId, "reading.manual_add", {
+    count: n,
+    codes: [...new Set(valid.map((r) => r.code))],
+  });
+  return n;
 }

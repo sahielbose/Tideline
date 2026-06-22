@@ -1,10 +1,9 @@
-import { FolderHeart, Heart, FlaskConical, RefreshCw, Sparkles, Download } from "lucide-react";
+import Link from "next/link";
+import { FolderHeart, Heart, FlaskConical, RefreshCw, Download, Activity, ArrowRight } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { listConnections } from "@/lib/services";
 import {
-  connectAction,
   syncDataAction,
-  loadDemoLabAction,
   importRecordsAction,
   importWearableAction,
 } from "@/app/actions";
@@ -14,8 +13,6 @@ import { UploadLab } from "@/components/labs/upload-lab";
 import { timeAgo } from "@/lib/utils";
 
 const ICON = { records: FolderHeart, wearable: Heart, lab: FlaskConical } as const;
-const RECORD_ORGS = ["Acme Health", "Kaiser Permanente", "Optum", "St Luke's", "UPMC", "Vanderbilt"];
-const WEARABLES = ["Fitbit", "Garmin", "Oura", "Dexcom", "Omron", "Strava"];
 
 export default async function ConnectionsPage() {
   const user = await getSessionUser();
@@ -26,7 +23,7 @@ export default async function ConnectionsPage() {
       <div className="page-head">
         <div>
           <h1 className="serif h1">Connections</h1>
-          <p className="sub">Records, wearables, and labs — connect demo data or import your own files.</p>
+          <p className="sub">Import your records, wearables, and labs — or enter readings by hand.</p>
         </div>
         <div className="head-actions">
           <ActionButton action={syncDataAction} className="btn btn-light" toast="Synced your latest data" pendingLabel="Syncing…">
@@ -35,11 +32,21 @@ export default async function ConnectionsPage() {
         </div>
       </div>
 
+      <div className="cta-band" style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <h2 className="serif h2" style={{ marginBottom: 4 }}>Prefer to type it in?</h2>
+          <p className="muted" style={{ margin: 0 }}>Log readings and lab panels by hand — no files needed.</p>
+        </div>
+        <Link className="btn btn-primary" href="/app/log">
+          <Activity /> Log data <ArrowRight size={16} />
+        </Link>
+      </div>
+
       <div className="box" style={{ marginBottom: 24 }}>
         <div className="bhead">Connected sources</div>
         {conns.length === 0 && (
           <div className="ins">
-            <p>No sources connected yet. Add one below.</p>
+            <p>No sources connected yet. Import a file below, or <Link href="/app/log" style={{ color: "var(--blue-ink)" }}>log data by hand</Link>.</p>
           </div>
         )}
         {conns.map((c) => {
@@ -70,16 +77,8 @@ export default async function ConnectionsPage() {
             <FolderHeart />
           </span>
           <h3>Medical records</h3>
-          <p>Connect demo records, or import a FHIR R4 bundle (JSON).</p>
-          <div className="logo-row" style={{ justifyContent: "flex-start", gap: 16, opacity: 0.55, margin: "12px 0 16px" }}>
-            {RECORD_ORGS.slice(0, 4).map((o) => (
-              <span key={o}>{o}</span>
-            ))}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <ActionButton action={connectAction.bind(null, "records", "mock")} className="btn btn-primary" toast="Records connected" pendingLabel="Connecting…">
-              Connect demo records
-            </ActionButton>
+          <p>Import a FHIR R4 bundle (JSON) exported from your provider&apos;s patient portal.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             <UploadFile action={importRecordsAction} accept=".json,application/json" label="Import FHIR bundle" toast="Importing records…" />
             <a className="conn-sample" href="/samples/fhir-bundle.json" download>
               <Download size={13} /> sample bundle
@@ -92,17 +91,12 @@ export default async function ConnectionsPage() {
             <Heart />
           </span>
           <h3>Wearable</h3>
-          <p>Sync demo biometrics, or import an Apple Health export (XML) or CSV.</p>
-          <div className="logo-row" style={{ justifyContent: "flex-start", gap: 16, opacity: 0.55, margin: "12px 0 16px" }}>
-            {WEARABLES.slice(0, 4).map((o) => (
-              <span key={o}>{o}</span>
-            ))}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <ActionButton action={connectAction.bind(null, "wearable", "mock")} className="btn btn-primary" toast="Wearable connected" pendingLabel="Connecting…">
-              Connect demo wearable
-            </ActionButton>
+          <p>Import an Apple Health export (XML) or a CSV, or log readings by hand.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             <UploadFile action={importWearableAction} accept=".csv,.xml,text/csv,application/xml" label="Import export" toast="Importing wearable…" />
+            <Link className="conn-sample" href="/app/log">
+              <Activity size={13} /> log a reading
+            </Link>
             <a className="conn-sample" href="/samples/wearable.csv" download>
               <Download size={13} /> sample CSV
             </a>
@@ -114,12 +108,12 @@ export default async function ConnectionsPage() {
             <FlaskConical />
           </span>
           <h3>Labs</h3>
-          <p>Upload a JSON, CSV, or PDF panel, or load a demo lab.</p>
+          <p>Upload a JSON, CSV, or PDF panel, or enter a panel marker by marker.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             <UploadLab />
-            <ActionButton action={loadDemoLabAction} className="btn btn-light" toast="Loaded a demo panel">
-              <Sparkles /> Load demo lab
-            </ActionButton>
+            <Link className="conn-sample" href="/app/log">
+              <FlaskConical size={13} /> add a panel by hand
+            </Link>
             <a className="conn-sample" href="/samples/lab-panel.json" download>
               <Download size={13} /> sample panel
             </a>

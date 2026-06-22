@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FolderHeart, Heart, FlaskConical, Sparkles, ArrowRight } from "lucide-react";
+import { Activity, Upload, FlaskConical, ArrowRight, ClipboardList } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { TopNav } from "@/components/top-nav";
-import { connectAction, loadDemoLabAction, seedDemoForCurrentUserAction } from "@/app/actions";
-import { ActionButton } from "@/components/action-button";
 
 export default async function OnboardingPage() {
   const user = await getSessionUser();
@@ -17,61 +15,59 @@ export default async function OnboardingPage() {
         <div className="wrap" style={{ maxWidth: 820, paddingBottom: 60 }}>
           <div className="hero" style={{ padding: "56px 0 24px", textAlign: "center" }}>
             <h1 className="serif h1">Let&apos;s build your timeline</h1>
-            <p className="lead" style={{ maxWidth: 540, margin: "12px auto 0" }}>
-              Connect a source to start monitoring — or load the full demo dataset to see everything
-              at once.
+            <p className="lead" style={{ maxWidth: 560, margin: "12px auto 0" }}>
+              Add your own data to start monitoring — type in readings and labs, or import an export
+              from your records or wearable. It&apos;s all yours, nothing is mocked.
             </p>
           </div>
 
           <div className="cta-band" style={{ marginBottom: 28 }}>
-            <h2 className="serif h2">Just exploring?</h2>
+            <h2 className="serif h2">Enter your first reading</h2>
             <p className="muted" style={{ margin: "8px 0 18px" }}>
-              Load a realistic demo: records, a wearable with a few weeks of drift, and labs.
+              Log a resting heart rate, blood pressure, weight, glucose, sleep — anything you track.
             </p>
-            <ActionButton
-              action={seedDemoForCurrentUserAction}
-              className="btn btn-primary"
-              toast="Loading demo data…"
-              pendingLabel="Loading…"
-            >
-              <Sparkles /> Load demo data
-            </ActionButton>
+            <Link className="btn btn-primary" href="/app/log">
+              <Activity /> Log your data
+            </Link>
           </div>
 
           <div className="cards-3">
             <div className="feature">
               <span className="ic">
-                <FolderHeart />
+                <Activity />
               </span>
-              <h3>Records</h3>
-              <p>Bring in conditions, encounters, and history.</p>
-              <ActionButton action={connectAction.bind(null, "records", "mock")} className="btn btn-light" toast="Records connected" pendingLabel="Connecting…">
-                Connect records
-              </ActionButton>
-            </div>
-            <div className="feature">
-              <span className="ic">
-                <Heart />
-              </span>
-              <h3>Wearable</h3>
-              <p>Resting HR, HRV, sleep, SpO₂, steps, and more.</p>
-              <ActionButton action={connectAction.bind(null, "wearable", "mock")} className="btn btn-light" toast="Wearable connected" pendingLabel="Connecting…">
-                Connect wearable
-              </ActionButton>
+              <h3>Readings</h3>
+              <p>Type in vitals and biometrics: HR, HRV, BP, sleep, SpO₂, glucose, weight, and more.</p>
+              <Link className="btn btn-light" href="/app/log">
+                Log readings
+              </Link>
             </div>
             <div className="feature">
               <span className="ic">
                 <FlaskConical />
               </span>
               <h3>Labs</h3>
-              <p>Load a demo panel to see the explainer.</p>
-              <ActionButton action={loadDemoLabAction} className="btn btn-light" toast="Loaded a demo panel">
-                Load demo lab
-              </ActionButton>
+              <p>Enter a panel marker by marker, or upload a JSON, CSV, or PDF report.</p>
+              <Link className="btn btn-light" href="/app/log">
+                Add labs
+              </Link>
+            </div>
+            <div className="feature">
+              <span className="ic">
+                <Upload />
+              </span>
+              <h3>Import files</h3>
+              <p>Bring in a FHIR records bundle or an Apple Health / CSV wearable export.</p>
+              <Link className="btn btn-light" href="/app/connections">
+                Import files
+              </Link>
             </div>
           </div>
 
-          <div style={{ textAlign: "center", marginTop: 30 }}>
+          <div style={{ textAlign: "center", marginTop: 30, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link className="btn btn-light" href="/app/profile">
+              <ClipboardList size={16} /> Add your health profile
+            </Link>
             <Link className="btn btn-dark" href="/app">
               Go to dashboard <ArrowRight />
             </Link>

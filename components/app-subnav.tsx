@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 
 const PRIMARY = [
   { href: "/app", label: "Dashboard", exact: true },
+  { href: "/app/log", label: "Log data" },
   { href: "/app/timeline", label: "Timeline" },
   { href: "/app/trends", label: "Trends" },
   { href: "/app/insights", label: "Insights" },

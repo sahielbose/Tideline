@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { FlaskConical, Sparkles } from "lucide-react";
+import { FlaskConical, Plus } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { listLabs, getLab } from "@/lib/services";
-import { loadDemoLabAction } from "@/app/actions";
-import { ActionButton } from "@/components/action-button";
 import { UploadLab } from "@/components/labs/upload-lab";
 
 export default async function LabsPage() {
@@ -26,9 +24,9 @@ export default async function LabsPage() {
         </div>
         <div className="head-actions" style={{ flexWrap: "wrap" }}>
           <UploadLab />
-          <ActionButton action={loadDemoLabAction} className="btn btn-light" toast="Loaded a demo panel">
-            <Sparkles /> Load demo lab
-          </ActionButton>
+          <Link className="btn btn-light" href="/app/log">
+            <Plus size={16} /> Add panel by hand
+          </Link>
         </div>
       </div>
 
@@ -38,7 +36,7 @@ export default async function LabsPage() {
             <FlaskConical />
           </div>
           <h2 className="serif h2">No labs yet</h2>
-          <p>Upload a JSON or CSV panel, or load a demo lab to see the explainer.</p>
+          <p>Upload a JSON, CSV, or PDF panel, or <Link href="/app/log" style={{ color: "var(--blue-ink)" }}>add a panel by hand</Link> to see the explainer.</p>
         </div>
       ) : (
         <div className="box" style={{ marginTop: 8, marginBottom: 60 }}>
